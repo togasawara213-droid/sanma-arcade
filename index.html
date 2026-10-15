@@ -1,0 +1,3901 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="三麻">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<title>三麻アーケード</title>
+<style>
+/* 三麻アーケード — styles (UI agent) */
+/* Fixed 1280x720 stage scaled to the window with a CSS transform. */
+
+:root {
+  --gold: #d4af37;
+  --gold-hi: #f7dc7a;
+  --gold-lo: #8a6d1c;
+  --felt: #0b3d2e;
+  --felt-hi: #146b4c;
+  --ink: #050806;
+  --panel: rgba(6, 10, 8, .88);
+  --orange: #ff8a1f;
+  --red: #e0332f;
+  --plus: #6cf08a;
+  --minus: #ff6b6b;
+  --text: #f4ecd6;
+  --muted: #b8ad90;
+  /* tile sizes (stage px) */
+  --hw: 64px; --hh: 87px;     /* human hand */
+  --rw: 34px; --rh: 46px;     /* river */
+  --mw: 46px; --mh: 62px;     /* human melds */
+  --kw: 30px; --kh: 41px;     /* kita (human) */
+  --font: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+  --num: "DIN Alternate", "Bahnschrift", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+}
+
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+body { font-family: var(--font); color: var(--text); -webkit-tap-highlight-color: transparent; }
+
+.sanma-root { position: fixed; inset: 0; overflow: clip; background:
+  radial-gradient(ellipse at 50% 40%, #16110a 0%, #000 70%); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
+  --sa-t: env(safe-area-inset-top, 0px); --sa-r: env(safe-area-inset-right, 0px);
+  --sa-b: env(safe-area-inset-bottom, 0px); --sa-l: env(safe-area-inset-left, 0px); }
+/* hidden probe: fit() reads its padding to keep the table clear of the notch and home indicator */
+.safe-probe { position: fixed; left: 0; top: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
+  padding: var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l); }
+.sanma-root button { font-family: inherit; }
+
+.rotate-hint { position: absolute; left: 0; right: 0; top: 12px; text-align: center; color: var(--gold);
+  font-size: 14px; letter-spacing: .1em; opacity: .85; display: none; }
+.rotate-hint.show { display: block; }
+
+.stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; overflow: clip;
+  background: #000; box-shadow: 0 0 0 2px #000, 0 0 40px rgba(212, 175, 55, .15); }
+
+/* ---------- felt table ---------- */
+.felt { position: absolute; left: 0; top: 40px; width: 1280px; height: 680px;
+  background:
+    radial-gradient(ellipse 70% 75% at 50% 48%, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 100%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 2px, rgba(0,0,0,.02) 2px 4px),
+    radial-gradient(ellipse at 50% 45%, var(--felt-hi) 0%, var(--felt) 55%, #05241a 100%);
+  box-shadow: inset 0 0 0 3px #000, inset 0 0 0 5px var(--gold-lo), inset 0 0 0 6px var(--gold), inset 0 0 80px rgba(0,0,0,.6); }
+.felt::after { content: "三麻"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -64%); font-size: 260px;
+  font-weight: 900; color: rgba(255,255,255,.018); letter-spacing: .1em; pointer-events: none; font-family: "Noto Serif CJK JP", serif; }
+
+/* ---------- top bar ---------- */
+.topbar { position: absolute; left: 0; top: 0; width: 1280px; height: 40px; display: flex; align-items: center; gap: 18px;
+  padding: 0 14px; box-sizing: border-box; background: linear-gradient(#1a1a1a, #030303); border-bottom: 2px solid var(--gold); z-index: 5; }
+.logo { font-weight: 900; font-size: 22px; letter-spacing: .12em; background: linear-gradient(180deg, #fff6c8 0%, var(--gold-hi) 30%, var(--gold) 60%, #8d6a14 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 6px rgba(212,175,55,.45)); white-space: nowrap; }
+.topbar .tb-mode { font-size: 13px; color: var(--muted); letter-spacing: .15em; border: 1px solid #5b4a17; padding: 2px 10px; border-radius: 3px; }
+.topbar .tb-info { font-size: 13px; color: var(--gold-hi); letter-spacing: .08em; }
+.topbar .spacer { flex: 1; }
+.tb-btn { height: 28px; padding: 0 14px; border-radius: 4px; border: 1px solid var(--gold); background: linear-gradient(#3a3320, #15110a);
+  color: var(--gold-hi); font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: .1em; }
+.tb-btn:hover, .tb-btn:focus-visible { background: linear-gradient(#5b4c22, #221a0b); outline: none; box-shadow: 0 0 8px rgba(212,175,55,.6); }
+
+/* ---------- generic tile ---------- */
+.tl { position: relative; display: inline-block; flex: none; width: var(--w); height: var(--h); padding: 0; margin: 0; border: 0;
+  background: none; line-height: 0; vertical-align: bottom; }
+.tl > .face { position: absolute; left: 0; top: 0; width: var(--w); height: var(--h); filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,.55)); }
+.tl.rot { width: var(--h); height: var(--w); }
+.tl.rot > .face { left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-90deg); }
+.tl.rot-r > .face { transform: translate(-50%, -50%) rotate(90deg); }
+.tsvg { display: block; width: 100%; height: 100%; }
+.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------- center panel ---------- */
+.center { position: absolute; left: 470px; top: 146px; width: 340px; height: 228px; box-sizing: border-box; border-radius: 16px;
+  background: linear-gradient(160deg, rgba(20,20,16,.95), rgba(3,5,4,.95)); border: 2px solid var(--gold);
+  box-shadow: 0 0 0 4px rgba(0,0,0,.6), 0 10px 30px rgba(0,0,0,.6), inset 0 0 24px rgba(212,175,55,.12); }
+.cp-round { position: absolute; left: 96px; right: 96px; top: 8px; text-align: center; font-size: 32px; font-weight: 900; color: var(--gold-hi);
+  text-shadow: 0 0 10px rgba(247,220,122,.5); letter-spacing: .05em; white-space: nowrap; }
+.cp-sub { position: absolute; left: 96px; right: 96px; top: 52px; display: flex; justify-content: center; gap: 10px; font-size: 13px; color: var(--text); white-space: nowrap; }
+.cp-sub .stick-mini { display: inline-block; width: 18px; height: 5px; background: #fff; border-radius: 3px; position: relative; top: -2px; margin-right: 3px; }
+.cp-sub .stick-mini::after { content: ""; position: absolute; left: 7px; top: 1px; width: 4px; height: 3px; border-radius: 50%; background: var(--red); }
+.cp-dora { position: absolute; left: 96px; right: 96px; top: 76px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.cp-dora .lbl { font-size: 11px; color: var(--muted); letter-spacing: .3em; }
+.cp-dora .tiles { display: flex; gap: 2px; --w: 26px; --h: 35px; }
+.cp-dora.flash .tiles { animation: doraFlash .9s ease-out; }
+@keyframes doraFlash { 0% { filter: drop-shadow(0 0 0 #fff); } 30% { filter: drop-shadow(0 0 10px #fff6a0); } 100% { filter: none; } }
+.cp-wall { position: absolute; left: 96px; right: 96px; top: 134px; text-align: center; font-size: 13px; color: var(--muted); }
+.cp-wall b { font-family: var(--num); font-size: 24px; color: #7ef7ff; text-shadow: 0 0 8px rgba(126,247,255,.6); margin-left: 6px; letter-spacing: .05em; }
+
+.sb { position: absolute; box-sizing: border-box; border: 1px solid #5a4a1a; border-radius: 10px; background: linear-gradient(#141414, #050505);
+  display: flex; align-items: center; justify-content: center; gap: 4px; transition: box-shadow .25s, border-color .25s; }
+.sb0 { left: 90px; bottom: 8px; width: 160px; height: 46px; }
+.sb1 { right: 8px; top: 30px; width: 82px; height: 118px; flex-direction: column; }
+.sb2 { left: 8px; top: 30px; width: 82px; height: 118px; flex-direction: column; }
+.sb.active { border-color: var(--orange); box-shadow: 0 0 14px 3px rgba(255,138,31,.75), inset 0 0 12px rgba(255,138,31,.35); animation: turnPulse 1.4s ease-in-out infinite; }
+@keyframes turnPulse { 50% { box-shadow: 0 0 22px 6px rgba(255,138,31,.9), inset 0 0 16px rgba(255,138,31,.5); } }
+.sb-wind { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 17px; background: #222; color: #ddd; border: 1px solid #555; flex: none; }
+.sb-wind.dealer { background: radial-gradient(#ff5a4a, #9b1010); color: #fff; border-color: #ffb0a0; }
+.sb-score { font-family: var(--num); font-size: 22px; font-weight: 700; color: #fff; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.sb-name { font-size: 11px; color: var(--muted); max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb0 .sb-name { display: none; }
+.sb-stick { width: 56px; height: 7px; border-radius: 4px; background: #fff; position: relative; box-shadow: 0 0 6px rgba(255,255,255,.7); animation: stickIn .5s ease-out; }
+.sb-stick::after { content: ""; position: absolute; left: 50%; top: 1.5px; width: 5px; height: 4px; margin-left: -2.5px; border-radius: 50%; background: var(--red); }
+.sb0 .sb-stick { position: absolute; top: -12px; left: 50%; margin-left: -28px; }
+@keyframes stickIn { from { transform: scaleX(0); opacity: 0; } to { transform: none; opacity: 1; } }
+.sb-delta { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--num); font-weight: 900; font-size: 22px;
+  padding: 2px 8px; border-radius: 6px; background: rgba(0,0,0,.85); pointer-events: none; animation: deltaIn 2.6s ease-out forwards; white-space: nowrap; }
+.sb-delta.plus { color: var(--plus); } .sb-delta.minus { color: var(--minus); }
+@keyframes deltaIn { 0% { opacity: 0; transform: translate(-50%, 0); } 12% { opacity: 1; transform: translate(-50%, -50%); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -90%); } }
+
+/* ---------- side players ---------- */
+.plate { position: absolute; top: 50px; width: 236px; height: 40px; box-sizing: border-box; border-radius: 6px; padding: 0 10px;
+  background: linear-gradient(#171717, #030303); border: 1px solid var(--gold-lo); display: flex; align-items: center; gap: 8px; transition: box-shadow .25s, border-color .25s; }
+.plate1 { right: 16px; flex-direction: row-reverse; }
+.plate2 { left: 16px; }
+.plate .pl-name { font-weight: 700; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70px; }
+.plate .pl-wind { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 14px; background: #222; color: #ddd; border: 1px solid #555; flex: none; }
+.plate .pl-wind.dealer { background: radial-gradient(#ff5a4a, #9b1010); color: #fff; border-color: #ffb0a0; }
+.plate .pl-score { font-family: var(--num); font-size: 15px; font-weight: 700; color: var(--gold-hi); margin-left: auto; font-variant-numeric: tabular-nums; }
+.plate1 .pl-score { margin-left: 0; margin-right: auto; }
+.plate .pl-tag { font-size: 11px; font-weight: 900; color: #fff; background: linear-gradient(#ff7a3a, #b8300c); padding: 1px 6px; border-radius: 3px; letter-spacing: .1em; }
+.plate .pl-think { display: none; gap: 3px; }
+.plate.thinking .pl-think { display: inline-flex; }
+.pl-think i { width: 5px; height: 5px; border-radius: 50%; background: var(--gold-hi); animation: think 1s infinite; }
+.pl-think i:nth-child(2) { animation-delay: .15s; } .pl-think i:nth-child(3) { animation-delay: .3s; }
+@keyframes think { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
+.plate.active { border-color: var(--orange); box-shadow: 0 0 14px 3px rgba(255,138,31,.7); }
+
+.kita-row { position: absolute; top: 96px; display: flex; gap: 3px; --w: 22px; --h: 30px; }
+.kita-row.k1 { right: 16px; }
+.kita-row.k2 { left: 16px; }
+
+.side-hand { position: absolute; top: 134px; width: 36px; display: flex; flex-direction: column; gap: 1px; }
+.side-hand.h1 { left: 1226px; }
+.side-hand.h2 { left: 18px; }
+.st { width: 36px; height: 24px; box-sizing: border-box; border-radius: 4px; flex: none; box-shadow: 1px 2px 2px rgba(0,0,0,.55); }
+.h1 .st { background: linear-gradient(90deg, #1d8a5b 0%, #136343 76%, #efe7cf 76%, #fffdf3 100%); }
+.h2 .st { background: linear-gradient(270deg, #1d8a5b 0%, #136343 76%, #efe7cf 76%, #fffdf3 100%); }
+.st.drawn { margin-top: 10px; }
+.st.open { background: none; box-shadow: none; }
+
+.side-melds { position: absolute; top: 134px; display: flex; flex-direction: column; gap: 8px; --w: 34px; --h: 46px; }
+.side-melds.m1 { left: 1172px; }
+.side-melds.m2 { left: 64px; }
+.side-melds .meld { display: flex; flex-direction: column; gap: 1px; }
+
+/* ---------- rivers ---------- */
+.river-wrap { position: absolute; }
+.river-wrap.r0 { left: 530px; top: 384px; width: 220px; height: 184px; }
+.river-wrap.r1 { left: 818px; top: 150px; width: 184px; height: 220px; }
+.river-wrap.r2 { left: 278px; top: 150px; width: 184px; height: 220px; }
+.river { position: absolute; width: 220px; height: 184px; display: flex; flex-direction: column; gap: 0; --w: var(--rw); --h: var(--rh); }
+.r1 .river, .r2 .river { left: 50%; top: 50%; }
+.r1 .river { transform: translate(-50%, -50%) rotate(-90deg); }
+.r2 .river { transform: translate(-50%, -50%) rotate(90deg); }
+.river .row { display: flex; align-items: flex-end; height: var(--rh); }
+.river .tl.taken { opacity: .38; filter: grayscale(.8); }
+.river .tl.last::after { content: ""; position: absolute; left: 50%; top: -9px; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--orange);
+  filter: drop-shadow(0 0 3px var(--orange)); animation: bob 1s ease-in-out infinite; }
+.river .tl.rot.last::after { top: -7px; }
+@keyframes bob { 50% { transform: translateY(-3px); } }
+
+/* ---------- human hand ---------- */
+.hand-row { position: absolute; left: 26px; top: 604px; height: 87px; display: flex; align-items: flex-end; gap: 0; }
+.hand-row .hand, .hand-row .drawn { display: flex; align-items: flex-end; gap: 2px; --w: var(--hw); --h: var(--hh); }
+.hand-row .drawn { margin-left: 16px; }
+.hand-row .melds { display: flex; align-items: flex-end; gap: 8px; margin-left: 22px; --w: var(--mw); --h: var(--mh); }
+.hand-row .melds .meld { display: flex; align-items: flex-end; gap: 1px; }
+.hand-row .kita { display: flex; align-items: flex-end; gap: 2px; margin-left: 14px; --w: var(--kw); --h: var(--kh); }
+.ht { cursor: default; transition: transform .12s ease-out, filter .12s; border-radius: 6px; }
+.ht:not([disabled]) { cursor: pointer; }
+.ht:not([disabled]):hover { transform: translateY(-8px); }
+.ht.sel { transform: translateY(-16px) !important; }
+.ht.sel > .face { filter: drop-shadow(0 0 6px var(--orange)) drop-shadow(0 0 2px #fff) drop-shadow(1px 2px 2px rgba(0,0,0,.6)); }
+.ht.dim > .face { filter: brightness(.5) grayscale(.35); }
+.ht:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.hand-row.myturn::before { content: ""; position: absolute; left: -6px; right: -6px; bottom: -6px; height: 4px; border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--orange), transparent); box-shadow: 0 0 12px var(--orange); }
+
+.hint { position: absolute; left: 30px; top: 696px; height: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gold-hi);
+  --w: 13px; --h: 18px; white-space: nowrap; }
+.hint .fur { color: #fff; background: #b8300c; font-size: 11px; padding: 0 5px; border-radius: 3px; font-weight: 700; }
+.hint .tl > .face { filter: none; }
+
+/* ---------- action bar ---------- */
+.action-bar { position: absolute; right: 100px; top: 504px; width: 460px; height: 82px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.action-bar[hidden] { display: none; }
+.timer { position: relative; width: 100%; height: 12px; display: flex; align-items: center; gap: 8px; }
+.timer[hidden] { display: none; }
+.timer .t-num { font-family: var(--num); font-weight: 900; font-size: 18px; color: var(--gold-hi); width: 28px; text-align: right; text-shadow: 0 0 6px rgba(247,220,122,.6); }
+.timer .t-track { flex: 1; height: 8px; border-radius: 4px; background: #141414; border: 1px solid var(--gold-lo); overflow: hidden; }
+.timer .t-fill { height: 100%; width: 100%; transform-origin: 0 50%; background: linear-gradient(90deg, #ffe27a, var(--orange)); box-shadow: 0 0 8px var(--orange); }
+.timer.low .t-fill { background: linear-gradient(90deg, #ff5a3a, #d1120c); }
+.timer.low .t-num { color: #ff6a4a; }
+.btns { display: flex; gap: 10px; justify-content: flex-end; }
+.act { position: relative; min-width: 100px; height: 58px; padding: 0 16px; border-radius: 14px; border: 2px solid var(--gold-hi); cursor: pointer;
+  font-size: 26px; font-weight: 900; color: #fff; letter-spacing: .06em; text-shadow: 0 2px 0 rgba(0,0,0,.5), 0 0 8px rgba(0,0,0,.4);
+  box-shadow: 0 4px 0 rgba(0,0,0,.6), 0 0 16px rgba(255,200,80,.35), inset 0 2px 0 rgba(255,255,255,.4); transition: transform .08s, filter .12s; }
+.act:hover, .act:focus-visible { filter: brightness(1.15); outline: none; }
+.act:focus-visible { box-shadow: 0 4px 0 rgba(0,0,0,.6), 0 0 0 3px #fff, 0 0 18px rgba(255,200,80,.7); }
+.act:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.6); }
+.act.win { background: linear-gradient(#ff7b52, #d11b12 60%, #8e0c07); border-color: #ffd9a0; animation: winPulse 1s ease-in-out infinite; min-width: 120px; font-size: 30px; }
+@keyframes winPulse { 50% { box-shadow: 0 4px 0 rgba(0,0,0,.6), 0 0 30px 8px rgba(255,90,40,.85), inset 0 2px 0 rgba(255,255,255,.4); } }
+.act.riichi { background: linear-gradient(#ffd66b, #e28a0e 60%, #9d5500); }
+.act.call { background: linear-gradient(#5fc2ff, #1a5fc8 60%, #0b347a); }
+.act.kita { background: linear-gradient(#83e0a8, #1b8a4d 60%, #0b4f2a); }
+.act.pass { background: linear-gradient(#777, #333 60%, #1a1a1a); border-color: #bbb; font-size: 22px; }
+.act.on { outline: 3px solid #fff; outline-offset: 2px; }
+.act small { font-size: 12px; display: block; letter-spacing: 0; opacity: .85; margin-top: -4px; }
+.act-note.call-note { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; --w: 30px; --h: 41px; margin-right: 2px; }
+.act-note { font-size: 14px; color: var(--gold-hi); align-self: center; margin-right: 6px; text-shadow: 0 0 6px #000; }
+.chooser { position: absolute; right: 0; bottom: 100%; margin-bottom: 8px; display: flex; gap: 8px; padding: 8px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--gold); box-shadow: 0 6px 20px rgba(0,0,0,.6); --w: 34px; --h: 46px; }
+.chooser[hidden] { display: none; }
+.chooser button { display: flex; gap: 2px; padding: 5px; border-radius: 6px; border: 1px solid #6a5a26; background: #1b1b1b; cursor: pointer; }
+.chooser button:hover, .chooser button:focus-visible { border-color: var(--orange); box-shadow: 0 0 10px var(--orange); outline: none; }
+
+/* ---------- effects ---------- */
+.fx { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+.call-flash { position: absolute; transform: translate(-50%, -50%); font-size: 72px; font-weight: 900; font-style: italic; white-space: nowrap; letter-spacing: .04em;
+  color: #fff4c4; -webkit-text-stroke: 3px #5a2b00; paint-order: stroke fill;
+  text-shadow: 0 0 18px rgba(255,160,40,.95), 0 0 42px rgba(255,90,20,.75); animation: flash .9s cubic-bezier(.2,1.4,.4,1) forwards; }
+.call-flash.big { font-size: 120px; color: #fff; text-shadow: 0 0 24px #ff3b1a, 0 0 60px #ffae00; }
+.call-flash.draw { color: #d8f2ff; text-shadow: 0 0 20px #3aa0ff; -webkit-text-stroke: 3px #062a52; }
+@keyframes flash { 0% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); } 25% { opacity: 1; transform: translate(-50%, -50%) scale(.95); }
+  35% { transform: translate(-50%, -50%) scale(1.05); } 80% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); } }
+.call-flash.hold { animation: flashHold .9s cubic-bezier(.2,1.4,.4,1) forwards; }
+@keyframes flashHold { 0% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); } 30% { opacity: 1; transform: translate(-50%, -50%) scale(.95); } 45%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.burst { position: absolute; left: 50%; top: 50%; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255,210,90,.18) 0 6deg, transparent 6deg 18deg); animation: burst 1.2s ease-out forwards; }
+@keyframes burst { from { transform: scale(.2) rotate(0); opacity: 1; } to { transform: scale(1.4) rotate(40deg); opacity: 0; } }
+
+.anim-draw { animation: drawIn .24s ease-out; }
+@keyframes drawIn { from { transform: translateY(-26px); opacity: 0; } to { transform: none; opacity: 1; } }
+.h1 .anim-draw, .h2 .anim-draw { animation: sideIn .22s ease-out; }
+@keyframes sideIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.anim-disc { animation: discIn .26s cubic-bezier(.2,1.3,.4,1); }
+@keyframes discIn { from { transform: translateY(40px) scale(1.35); opacity: 0; } to { transform: none; opacity: 1; } }
+.anim-meld { animation: meldIn .35s ease-out; }
+@keyframes meldIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.round-banner { position: absolute; left: 0; top: 280px; width: 1280px; height: 120px; display: flex; align-items: center; justify-content: center; gap: 28px;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.88) 18%, rgba(0,0,0,.88) 82%, transparent);
+  border-top: 2px solid var(--gold); border-bottom: 2px solid var(--gold); animation: sweep 1.5s cubic-bezier(.3,.7,.3,1) forwards; z-index: 21; pointer-events: none; }
+.round-banner .rb-main { font-size: 64px; font-weight: 900; letter-spacing: .08em; background: linear-gradient(#fff8d0, var(--gold-hi) 40%, var(--gold) 70%, #8d6a14);
+  -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgba(247,220,122,.6)); }
+.round-banner .rb-sub { font-size: 26px; color: var(--text); font-weight: 700; }
+.round-banner .rb-sub small { display: block; font-size: 14px; color: var(--muted); font-weight: 400; }
+@keyframes sweep { 0% { transform: translateX(-100%); opacity: 0; } 20% { transform: translateX(0); opacity: 1; } 78% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(60%); opacity: 0; } }
+
+/* ---------- overlays / panels ---------- */
+.overlay { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.6); }
+.overlay[hidden] { display: none; }
+.panel { position: relative; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--gold); color: var(--text);
+  background: linear-gradient(170deg, #1c1a14 0%, #080806 60%, #0d0b06 100%);
+  box-shadow: 0 0 0 5px rgba(0,0,0,.8), 0 0 0 7px var(--gold-lo), 0 20px 60px rgba(0,0,0,.8), inset 0 0 40px rgba(212,175,55,.1);
+  animation: panelIn .45s cubic-bezier(.2,1.2,.4,1); }
+@keyframes panelIn { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.win-panel { width: 900px; min-height: 520px; padding: 20px 30px 18px; }
+.wp-head { display: flex; align-items: baseline; gap: 18px; border-bottom: 1px solid #4d4119; padding-bottom: 8px; }
+.wp-type { font-size: 52px; font-weight: 900; font-style: italic; line-height: 1; color: #fff; -webkit-text-stroke: 2px #6a0d00; paint-order: stroke fill;
+  text-shadow: 0 0 16px #ff4a1a, 0 0 36px #ffae00; }
+.wp-name { font-size: 26px; font-weight: 800; }
+.wp-from { font-size: 16px; color: var(--muted); }
+.wp-page { margin-left: auto; font-size: 14px; color: var(--muted); }
+.wp-hand { display: flex; align-items: flex-end; gap: 1px; margin: 16px 0 10px; min-height: 62px; --w: 44px; --h: 60px; }
+.wp-hand .gap { width: 14px; flex: none; }
+.wp-hand .win-tile { margin-left: 12px; }
+.wp-hand .win-tile > .face { filter: drop-shadow(0 0 5px #ffb400) drop-shadow(0 0 2px #fff); }
+.wp-hand .win-tile::after { content: "和了牌"; position: absolute; left: 50%; bottom: -17px; transform: translateX(-50%); font-size: 10px; color: var(--orange); line-height: 1; white-space: nowrap; }
+.wp-hand .meld { display: flex; align-items: flex-end; gap: 1px; margin-left: 10px; }
+.wp-hand .kita-g { display: flex; gap: 1px; margin-left: 12px; --w: 30px; --h: 41px; }
+.wp-dora { display: flex; gap: 22px; align-items: center; margin: 14px 0 8px; font-size: 13px; color: var(--muted); --w: 28px; --h: 38px; }
+.wp-dora .grp { display: flex; align-items: center; gap: 6px; }
+.wp-dora .tiles { display: flex; gap: 2px; }
+.wp-body { display: grid; grid-template-columns: 1fr 330px; gap: 22px; margin-top: 6px; }
+.wp-yaku { list-style: none; margin: 0; padding: 10px 16px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 26px; row-gap: 4px; align-content: start;
+  background: rgba(255,255,255,.03); border: 1px solid #3a321a; border-radius: 10px; min-height: 150px; }
+.wp-yaku li { display: flex; justify-content: space-between; font-size: 20px; padding: 3px 0; border-bottom: 1px dashed #3a321a; opacity: 0; animation: yakuIn .3s ease-out forwards; }
+.wp-yaku li b { color: var(--gold-hi); font-family: var(--num); }
+.wp-yaku li.dora { color: #ffb3a8; }
+@keyframes yakuIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+.wp-score { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.wp-fuhan { font-size: 20px; color: var(--text); }
+.wp-limit { font-size: 44px; font-weight: 900; line-height: 1.1; background: linear-gradient(#fff8d0, var(--gold-hi) 40%, var(--gold) 70%, #8d6a14);
+  -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgba(247,220,122,.5)); animation: limitIn .6s .5s cubic-bezier(.2,1.5,.4,1) backwards; }
+@keyframes limitIn { from { transform: scale(2); opacity: 0; } to { transform: none; opacity: 1; } }
+.wp-points { font-family: var(--num); font-size: 48px; font-weight: 900; color: #fff; text-shadow: 0 0 14px rgba(255,200,80,.7); line-height: 1; }
+.wp-points small { font-size: 20px; margin-left: 4px; font-family: var(--font); }
+.wp-split { font-size: 14px; color: var(--muted); }
+.pay { width: 100%; margin-top: 8px; border-top: 1px solid #3a321a; padding-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.pay-row { display: flex; justify-content: space-between; font-size: 16px; }
+.pay-row .v { font-family: var(--num); font-weight: 800; }
+.pay-row .v.plus { color: var(--plus); } .pay-row .v.minus { color: var(--minus); }
+.panel-foot { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 14px; }
+.panel-foot .auto { font-size: 12px; color: var(--muted); margin-right: auto; }
+.big-btn { min-width: 170px; height: 54px; border-radius: 12px; border: 2px solid var(--gold-hi); cursor: pointer; font-size: 22px; font-weight: 900; color: #221600; letter-spacing: .12em;
+  background: linear-gradient(#fff1a8, var(--gold) 55%, #8d6a14); box-shadow: 0 4px 0 #3a2a00, 0 0 18px rgba(212,175,55,.5); }
+.big-btn:hover, .big-btn:focus-visible { filter: brightness(1.12); outline: none; box-shadow: 0 4px 0 #3a2a00, 0 0 0 3px #fff, 0 0 24px rgba(212,175,55,.8); }
+.big-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #3a2a00; }
+.big-btn[disabled] { filter: grayscale(.8) brightness(.6); cursor: default; }
+.big-btn.ghost { background: linear-gradient(#333, #111); color: var(--gold-hi); border-color: var(--gold-lo); box-shadow: 0 4px 0 #000; }
+
+.draw-panel { width: 820px; padding: 20px 30px 18px; }
+.draw-panel .wp-type { text-shadow: 0 0 16px #3aa0ff, 0 0 36px #0060ff; -webkit-text-stroke-color: #062a52; }
+.dp-rows { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.dp-row { display: grid; grid-template-columns: 120px 96px 1fr 96px; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid #3a321a; }
+.dp-name { font-size: 18px; font-weight: 700; }
+.dp-state { font-size: 15px; font-weight: 900; text-align: center; padding: 4px 0; border-radius: 6px; }
+.dp-state.tenpai { background: linear-gradient(#ffd66b, #b8740a); color: #2a1800; }
+.dp-state.noten { background: #2a2a2a; color: #9a9a9a; }
+.dp-hand { display: flex; gap: 1px; --w: 25px; --h: 34px; min-height: 34px; min-width: 0; align-items: center; }
+.dp-hand .none { color: #666; font-size: 13px; }
+.dp-hand .meld { display: flex; gap: 1px; margin-left: 8px; align-items: flex-end; }
+.dp-delta { text-align: right; font-family: var(--num); font-size: 20px; font-weight: 800; }
+.dp-delta.plus { color: var(--plus); } .dp-delta.minus { color: var(--minus); } .dp-delta.zero { color: #888; }
+
+.final-panel { width: 700px; padding: 26px 36px 22px; text-align: center; }
+.final-title { font-size: 46px; font-weight: 900; letter-spacing: .2em; background: linear-gradient(#fff8d0, var(--gold-hi) 40%, var(--gold) 70%, #8d6a14);
+  -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 12px rgba(247,220,122,.5)); }
+.fr-rows { display: flex; flex-direction: column; gap: 10px; margin: 18px 0 8px; }
+.fr-row { display: grid; grid-template-columns: 80px 1fr 150px 110px; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px; background: rgba(255,255,255,.04);
+  border: 1px solid #3a321a; opacity: 0; animation: yakuIn .4s ease-out forwards; text-align: left; }
+.fr-row.me { border-color: var(--orange); box-shadow: 0 0 12px rgba(255,138,31,.35); }
+.fr-rank { font-size: 30px; font-weight: 900; font-style: italic; text-align: center; }
+.fr-rank.r1 { color: #ffd84a; text-shadow: 0 0 12px rgba(255,216,74,.7); } .fr-rank.r2 { color: #d8dde6; } .fr-rank.r3 { color: #d08a4a; }
+.fr-name { font-size: 22px; font-weight: 800; }
+.fr-score { font-family: var(--num); font-size: 26px; font-weight: 800; text-align: right; }
+.fr-pts { font-family: var(--num); font-size: 22px; font-weight: 800; text-align: right; }
+.fr-pts.plus { color: var(--plus); } .fr-pts.minus { color: var(--minus); }
+.final-panel .panel-foot { justify-content: center; }
+
+/* ---------- title ---------- */
+.title-scr { position: absolute; inset: 0; z-index: 25; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 38%, #1f4a36 0%, #0b2a1e 35%, #020604 75%); overflow: hidden; }
+.title-scr[hidden] { display: none; }
+.title-scr::before { content: ""; position: absolute; left: 50%; top: 36%; width: 1400px; height: 1400px; margin: -700px 0 0 -700px;
+  background: repeating-conic-gradient(rgba(212,175,55,.07) 0 5deg, transparent 5deg 15deg); animation: spin 60s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.title-fan { position: relative; display: flex; gap: 6px; margin-bottom: 12px; --w: 50px; --h: 68px; }
+.title-fan .tl { animation: fanIn .6s cubic-bezier(.2,1.3,.4,1) backwards; }
+@keyframes fanIn { from { transform: translateY(-40px) rotate(-20deg); opacity: 0; } }
+.title-logo { position: relative; font-size: 112px; font-weight: 900; letter-spacing: .1em; line-height: 1.05;
+  background: linear-gradient(180deg, #fffbe0 0%, var(--gold-hi) 28%, var(--gold) 55%, #7a5a0e 78%, #e8c860 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 0 #2a1d00) drop-shadow(0 0 22px rgba(247,220,122,.45)); }
+.title-sub { position: relative; font-size: 18px; letter-spacing: .5em; color: var(--text); margin: 4px 0 26px; text-indent: .5em; }
+.title-btns { position: relative; display: flex; gap: 18px; }
+.title-btns .big-btn.start { min-width: 260px; height: 70px; font-size: 30px; animation: startGlow 1.6s ease-in-out infinite; }
+@keyframes startGlow { 50% { box-shadow: 0 4px 0 #3a2a00, 0 0 36px 8px rgba(247,220,122,.75); } }
+.title-stats { position: relative; display: flex; gap: 0; margin-top: 30px; border: 1px solid var(--gold-lo); border-radius: 10px; background: rgba(0,0,0,.55); }
+.title-stats div { padding: 8px 22px; text-align: center; border-left: 1px solid #3a321a; }
+.title-stats div:first-child { border-left: 0; }
+.title-stats span { display: block; font-size: 11px; color: var(--muted); letter-spacing: .15em; }
+.title-stats b { font-family: var(--num); font-size: 24px; color: var(--gold-hi); }
+.title-press { position: absolute; bottom: 26px; left: 0; right: 0; text-align: center; font-size: 14px; letter-spacing: .6em; color: var(--gold); animation: blink 1.6s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+.title-foot { position: absolute; bottom: 8px; right: 14px; font-size: 11px; color: #5d5a4e; }
+
+/* ---------- settings drawer ---------- */
+.drawer { position: absolute; top: 40px; right: 0; bottom: 0; width: 360px; z-index: 40; box-sizing: border-box; padding: 18px 22px;
+  background: linear-gradient(#141210, #050505); border-left: 2px solid var(--gold); box-shadow: -20px 0 40px rgba(0,0,0,.6);
+  transform: translateX(105%); transition: transform .28s ease-out; visibility: hidden; }
+.drawer.open { transform: none; visibility: visible; }
+.drawer h2 { margin: 0 0 12px; font-size: 22px; color: var(--gold-hi); letter-spacing: .3em; display: flex; justify-content: space-between; align-items: center; }
+.drawer .x { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--gold); background: #1a1a1a; color: var(--gold-hi); font-size: 18px; cursor: pointer; }
+.set-row { display: flex; align-items: center; justify-content: space-between; min-height: 48px; border-bottom: 1px solid #2a2618; gap: 10px; }
+.set-row .lbl { font-size: 16px; }
+.set-row .lbl small { display: block; font-size: 11px; color: var(--muted); }
+.sw { position: relative; width: 58px; height: 30px; flex: none; }
+.sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.sw .ui { position: absolute; inset: 0; border-radius: 15px; background: #2a2a2a; border: 1px solid #555; transition: background .2s; }
+.sw .ui::after { content: ""; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #bbb; transition: transform .2s, background .2s; }
+.sw input:checked + .ui { background: linear-gradient(#e2b23a, #8d6a14); border-color: var(--gold-hi); }
+.sw input:checked + .ui::after { transform: translateX(28px); background: #fff; }
+.sw input:focus-visible + .ui { box-shadow: 0 0 0 2px var(--orange); }
+.set-row select { height: 30px; background: #1a1a1a; color: var(--text); border: 1px solid var(--gold-lo); border-radius: 6px; font-size: 14px; padding: 0 6px; }
+.drawer .note { margin-top: 14px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.toast { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); z-index: 50; background: rgba(0,0,0,.88); border: 1px solid var(--gold); color: var(--text);
+  padding: 8px 18px; border-radius: 8px; font-size: 15px; opacity: 0; transition: opacity .25s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+/* ---------- large tiles setting ---------- */
+.stage.big { --hw: 70px; --hh: 95px; --rw: 36px; --rh: 49px; --mw: 48px; --mh: 65px; }
+.stage.big .hand-row { top: 598px; height: 95px; }
+.stage.big .hand-row .drawn { margin-left: 12px; }
+.stage.big .river .row { height: var(--rh); }
+.stage.big .river-wrap.r0 { left: 519px; width: 232px; top: 380px; }
+.stage.big .river { width: 232px; height: 196px; }
+.stage.big .river-wrap.r1, .stage.big .river-wrap.r2 { width: 196px; height: 232px; top: 144px; }
+.stage.big .river-wrap.r2 { left: 268px; }
+.stage.big .hint { top: 700px; }
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  .round-banner, .call-flash, .call-flash.hold { animation: none !important; transform: translate(-50%, -50%); }
+  .round-banner { transform: none; }
+  .burst, .title-scr::before { display: none; }
+  .sb-delta { animation: none !important; }
+  .timer .t-fill { transition-duration: var(--tdur, 10s) !important; }
+}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ===== src/engine.js ===== */
+/* SANMA ARCADE - engine.js
+ * Pure mahjong rules engine for 3-player mahjong (三人麻雀).
+ * Tile helpers, wall, shanten, waits, ukeire, discard analysis, win evaluation and scoring.
+ * No state, no DOM. Works in the browser (window.Sanma.Engine) and in Node (module.exports).
+ */
+(function () {
+  'use strict';
+
+  var root = (typeof window !== 'undefined') ? window : (typeof global !== 'undefined' ? global : this);
+  var Sanma = root.Sanma = root.Sanma || {};
+
+  // ---------------------------------------------------------------------------------------------
+  // Tile basics
+  // ---------------------------------------------------------------------------------------------
+  var EAST = 27, SOUTH = 28, WEST = 29, NORTH = 30, HAKU = 31, HATSU = 32, CHUN = 33;
+  var RED_IDS = [13 * 4, 22 * 4]; // 5p copy 0 (52), 5s copy 0 (88)
+
+  var SANMA_KINDS = [];
+  (function () {
+    for (var k = 0; k < 34; k++) {
+      if (k >= 1 && k <= 7) continue; // 2m..8m do not exist in sanma
+      SANMA_KINDS.push(k);
+    }
+  })();
+  var SANMA_SET = new Array(34);
+  for (var _i = 0; _i < 34; _i++) SANMA_SET[_i] = false;
+  SANMA_KINDS.forEach(function (k) { SANMA_SET[k] = true; });
+
+  function kindOf(id) { return (id / 4) | 0; }
+  function isRed(id) { return id === RED_IDS[0] || id === RED_IDS[1]; }
+  function makeTile(id) { return { id: id, kind: kindOf(id), red: isRed(id) }; }
+  function isSanmaKind(kind) { return kind >= 0 && kind < 34 && SANMA_SET[kind]; }
+  function suitOf(kind) { return kind < 9 ? 'm' : kind < 18 ? 'p' : kind < 27 ? 's' : 'z'; }
+  function numOf(kind) { return kind < 27 ? (kind % 9) + 1 : kind - 26; }
+  function isHonor(kind) { return kind >= 27; }
+  function isTerminal(kind) { return kind < 27 && (kind % 9 === 0 || kind % 9 === 8); }
+  function isYaochu(kind) { return kind >= 27 || kind % 9 === 0 || kind % 9 === 8; }
+  function isDragon(kind) { return kind >= 31 && kind <= 33; }
+  function isWind(kind) { return kind >= 27 && kind <= 30; }
+
+  var HONOR_EN = ['E', 'S', 'W', 'N', 'Wh', 'G', 'R'];
+  var HONOR_JA = ['東', '南', '西', '北', '白', '發', '中'];
+  var NUM_JA = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  var SUIT_JA = { m: '萬', p: '筒', s: '索' };
+
+  function tileName(kind) {
+    if (kind >= 27) return HONOR_EN[kind - 27];
+    return numOf(kind) + suitOf(kind);
+  }
+  function tileNameJa(kind) {
+    if (kind >= 27) return HONOR_JA[kind - 27];
+    return NUM_JA[kind % 9] + SUIT_JA[suitOf(kind)];
+  }
+
+  function doraOf(ind) {
+    if (ind === 0) return 8;          // 1m -> 9m (sanma)
+    if (ind === 8) return 0;          // 9m -> 1m (sanma)
+    if (ind < 27) return (ind % 9 === 8) ? ind - 8 : ind + 1;
+    if (ind <= 30) return ind === 30 ? 27 : ind + 1;   // E->S->W->N->E
+    return ind === 33 ? 31 : ind + 1;                 // Wh->G->R->Wh
+  }
+
+  function newWall(rng) {
+    rng = rng || Math.random;
+    var wall = [];
+    SANMA_KINDS.forEach(function (k) {
+      for (var c = 0; c < 4; c++) wall.push(makeTile(k * 4 + c));
+    });
+    for (var i = wall.length - 1; i > 0; i--) {
+      var j = Math.floor(rng() * (i + 1));
+      if (j > i) j = i;
+      var t = wall[i]; wall[i] = wall[j]; wall[j] = t;
+    }
+    return wall;
+  }
+
+  function toCounts(kinds) {
+    var c = new Array(34);
+    for (var i = 0; i < 34; i++) c[i] = 0;
+    for (var j = 0; j < kinds.length; j++) {
+      var k = kinds[j];
+      if (typeof k === 'object' && k !== null) k = tKind(k);
+      c[k]++;
+    }
+    return c;
+  }
+
+  // Accept Tile objects, or raw ids.
+  function tKind(t) {
+    if (typeof t === 'number') return kindOf(t);
+    if (t && typeof t.kind === 'number') return t.kind;
+    return kindOf(t.id);
+  }
+  function tRed(t) {
+    if (typeof t === 'number') return isRed(t);
+    if (!t) return false;
+    if (t.red) return true;
+    return typeof t.id === 'number' && isRed(t.id);
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Hand notation: "19m123p0p456s11z" (z: 1..7 = 東南西北白發中, 0 = red five)
+  // ---------------------------------------------------------------------------------------------
+  function parseRaw(str) {
+    var out = []; // [{kind, red}]
+    var digits = [];
+    for (var i = 0; i < str.length; i++) {
+      var ch = str[i];
+      if (ch >= '0' && ch <= '9') { digits.push(+ch); continue; }
+      if (ch === ' ') continue;
+      var base = ch === 'm' ? 0 : ch === 'p' ? 9 : ch === 's' ? 18 : ch === 'z' ? 27 : -1;
+      if (base < 0) throw new Error('parseHand: bad suit char ' + ch);
+      for (var j = 0; j < digits.length; j++) {
+        var d = digits[j];
+        if (ch === 'z') {
+          if (d < 1 || d > 7) throw new Error('parseHand: bad honor ' + d);
+          out.push({ kind: base + d - 1, red: false });
+        } else if (d === 0) {
+          out.push({ kind: base + 4, red: true });
+        } else {
+          out.push({ kind: base + d - 1, red: false });
+        }
+      }
+      digits = [];
+    }
+    if (digits.length) throw new Error('parseHand: trailing digits without suit');
+    return out;
+  }
+  function parseHand(str) { return parseRaw(str).map(function (x) { return x.kind; }); }
+
+  // Like parseHand but returns Tile objects with distinct ids ("0p"/"0s" => the red copy).
+  function parseTiles(str, used) {
+    used = used || {};
+    return parseRaw(str).map(function (x) {
+      var id = -1;
+      if (x.red) id = x.kind * 4;
+      else {
+        var order = (x.kind === 13 || x.kind === 22) ? [1, 2, 3, 0] : [0, 1, 2, 3];
+        for (var i = 0; i < 4; i++) {
+          var cand = x.kind * 4 + order[i];
+          if (!used[cand]) { id = cand; break; }
+        }
+        if (id < 0) throw new Error('parseTiles: more than 4 of ' + tileName(x.kind));
+      }
+      if (used[id]) throw new Error('parseTiles: duplicate tile id ' + id);
+      used[id] = true;
+      return makeTile(id);
+    });
+  }
+
+  function handToString(kinds) {
+    var ks = kinds.map(function (k) { return typeof k === 'object' ? tKind(k) : k; }).slice().sort(function (a, b) { return a - b; });
+    var s = '', cur = '', buf = '';
+    ks.forEach(function (k) {
+      var su = suitOf(k);
+      if (su !== cur) { if (buf) s += buf + cur; buf = ''; cur = su; }
+      buf += String(k >= 27 ? k - 26 : (k % 9) + 1);
+    });
+    if (buf) s += buf + cur;
+    return s;
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Shanten
+  // ---------------------------------------------------------------------------------------------
+  // For each suit group we memoize the Pareto-optimal set of (mentsu, taatsu, pair) triples that the
+  // group's tiles can form. Options are encoded as small ints: m*32 + t*2 + p  (m<=4, t<=15, p<=1).
+  var P5 = [1, 5, 25, 125, 625, 3125, 15625, 78125, 390625];
+  var suitMemo = new Map();
+  var honorMemo = new Map();
+  var ZERO_OPTS = [0];
+
+  function optM(o) { return o >> 5; }
+  function optT(o) { return (o >> 1) & 15; }
+  function optP(o) { return o & 1; }
+
+  function pareto(list) {
+    // remove duplicates and dominated options
+    list.sort(function (a, b) { return b - a; });
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var o = list[i];
+      if (i > 0 && list[i - 1] === o) continue;
+      var m = o >> 5, t = (o >> 1) & 15, p = o & 1, dom = false;
+      for (var j = 0; j < out.length; j++) {
+        var q = out[j];
+        if ((q >> 5) >= m && ((q >> 1) & 15) >= t && (q & 1) >= p) { dom = true; break; }
+      }
+      if (!dom) out.push(o);
+    }
+    return out;
+  }
+
+  function groupOpts(a, len, honor, key, memo) {
+    var hit = memo.get(key);
+    if (hit) return hit;
+    var i = 0;
+    while (i < len && a[i] === 0) i++;
+    if (i === len) { memo.set(key, ZERO_OPTS); return ZERO_OPTS; }
+    var out = [];
+    var sub, j;
+    function add(sub, delta, pairAdd) {
+      for (var q = 0; q < sub.length; q++) {
+        var o = sub[q];
+        if (pairAdd && (o & 1)) continue;
+        var t = ((o >> 1) & 15) + ((delta >> 1) & 15);
+        if (t > 15) t = 15;
+        out.push((((o >> 5) + (delta >> 5)) << 5) | (t << 1) | ((o & 1) | pairAdd));
+      }
+    }
+    // koutsu
+    if (a[i] >= 3) {
+      a[i] -= 3; sub = groupOpts(a, len, honor, key - 3 * P5[i], memo); a[i] += 3;
+      add(sub, 32, 0);
+    }
+    // shuntsu
+    if (!honor && i + 2 < len && a[i + 1] > 0 && a[i + 2] > 0) {
+      a[i]--; a[i + 1]--; a[i + 2]--;
+      sub = groupOpts(a, len, honor, key - P5[i] - P5[i + 1] - P5[i + 2], memo);
+      a[i]++; a[i + 1]++; a[i + 2]++;
+      add(sub, 32, 0);
+    }
+    // pair (as head or as taatsu)
+    if (a[i] >= 2) {
+      a[i] -= 2; sub = groupOpts(a, len, honor, key - 2 * P5[i], memo); a[i] += 2;
+      add(sub, 0, 1);
+      add(sub, 2, 0);
+    }
+    if (!honor) {
+      // ryanmen / penchan
+      if (i + 1 < len && a[i + 1] > 0) {
+        a[i]--; a[i + 1]--;
+        sub = groupOpts(a, len, honor, key - P5[i] - P5[i + 1], memo);
+        a[i]++; a[i + 1]++;
+        add(sub, 2, 0);
+      }
+      // kanchan
+      if (i + 2 < len && a[i + 2] > 0) {
+        a[i]--; a[i + 2]--;
+        sub = groupOpts(a, len, honor, key - P5[i] - P5[i + 2], memo);
+        a[i]++; a[i + 2]++;
+        add(sub, 2, 0);
+      }
+    }
+    // isolated tile
+    a[i]--; sub = groupOpts(a, len, honor, key - P5[i], memo); a[i]++;
+    for (j = 0; j < sub.length; j++) out.push(sub[j]);
+    var res = pareto(out);
+    memo.set(key, res);
+    return res;
+  }
+
+  var scratch9 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  function suitOptsFor(counts, off, len, honor) {
+    var key = 0, n = 0;
+    for (var i = 0; i < len; i++) {
+      var c = counts[off + i];
+      if (c > 4) c = 4;
+      scratch9[i] = c; key += c * P5[i]; n += c;
+    }
+    if (n === 0) return ZERO_OPTS;
+    var memo = honor ? honorMemo : suitMemo;
+    var hit = memo.get(key);
+    if (hit) return hit;
+    var arr = scratch9.slice(0, len);
+    return groupOpts(arr, len, honor, key, memo);
+  }
+
+  function combine(A, B) {
+    if (A.length === 1 && A[0] === 0) return B;
+    if (B.length === 1 && B[0] === 0) return A;
+    var out = [];
+    for (var i = 0; i < A.length; i++) {
+      var a = A[i];
+      for (var j = 0; j < B.length; j++) {
+        var b = B[j];
+        if ((a & 1) && (b & 1)) continue;
+        var t = ((a >> 1) & 15) + ((b >> 1) & 15);
+        if (t > 15) t = 15;
+        out.push((((a >> 5) + (b >> 5)) << 5) | (t << 1) | ((a & 1) | (b & 1)));
+      }
+    }
+    return pareto(out);
+  }
+
+  function shantenStandard(counts, meldCount) {
+    meldCount = meldCount || 0;
+    var need = 4 - meldCount;
+    var AB = combine(suitOptsFor(counts, 0, 9, false), suitOptsFor(counts, 9, 9, false));
+    var CD = combine(suitOptsFor(counts, 18, 9, false), suitOptsFor(counts, 27, 7, true));
+    var best = -1;
+    for (var i = 0; i < AB.length; i++) {
+      var x = AB[i];
+      for (var j = 0; j < CD.length; j++) {
+        var y = CD[j];
+        var p = (x & 1) + (y & 1);
+        if (p > 1) continue;
+        var m = (x >> 5) + (y >> 5);
+        var t = ((x >> 1) & 15) + ((y >> 1) & 15);
+        if (m > need) m = need;
+        if (t > need - m) t = need - m;
+        var v = 2 * m + t + p;
+        if (v > best) best = v;
+      }
+    }
+    return 2 * need - best;
+  }
+
+  function shantenChiitoi(counts) {
+    var pairs = 0, kinds = 0;
+    for (var i = 0; i < 34; i++) {
+      if (counts[i] >= 1) kinds++;
+      if (counts[i] >= 2) pairs++;
+    }
+    return 6 - pairs + Math.max(0, 7 - kinds);
+  }
+
+  var YAOCHU = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
+  function shantenKokushi(counts) {
+    var kinds = 0, pair = 0;
+    for (var i = 0; i < YAOCHU.length; i++) {
+      var c = counts[YAOCHU[i]];
+      if (c >= 1) kinds++;
+      if (c >= 2) pair = 1;
+    }
+    return 13 - kinds - pair;
+  }
+
+  function shanten(counts, meldCount) {
+    meldCount = meldCount || 0;
+    var s = shantenStandard(counts, meldCount);
+    if (meldCount === 0) {
+      var c = shantenChiitoi(counts); if (c < s) s = c;
+      var k = shantenKokushi(counts); if (k < s) s = k;
+    }
+    return s;
+  }
+
+  function sumCounts(counts) { var n = 0; for (var i = 0; i < 34; i++) n += counts[i]; return n; }
+
+  function isAgari(counts, meldCount) {
+    meldCount = meldCount || 0;
+    if (sumCounts(counts) % 3 !== 2) return false;
+    return shanten(counts, meldCount) === -1;
+  }
+
+  // Tiles that complete a 3n+1 hand. Excludes kinds whose 4 copies are all already in the hand
+  // and kinds that do not exist in sanma (2m..8m).
+  function waits(counts, meldCount) {
+    meldCount = meldCount || 0;
+    var out = [];
+    if (sumCounts(counts) % 3 !== 1) return out;
+    for (var i = 0; i < SANMA_KINDS.length; i++) {
+      var k = SANMA_KINDS[i];
+      if (counts[k] >= 4) continue;
+      counts[k]++;
+      var ok = shanten(counts, meldCount) === -1;
+      counts[k]--;
+      if (ok) out.push(k);
+    }
+    return out;
+  }
+
+  function ukeire(counts, meldCount, visibleCounts) {
+    meldCount = meldCount || 0;
+    var vis = visibleCounts || counts;
+    var s = shanten(counts, meldCount);
+    var tiles = [], count = 0;
+    for (var i = 0; i < SANMA_KINDS.length; i++) {
+      var k = SANMA_KINDS[i];
+      if (counts[k] >= 4) continue;
+      counts[k]++;
+      var s2 = shanten(counts, meldCount);
+      counts[k]--;
+      if (s2 < s) {
+        tiles.push(k);
+        var rem = 4 - vis[k];
+        if (rem > 0) count += rem;
+      }
+    }
+    return { shanten: s, tiles: tiles, count: count };
+  }
+
+  // For a 3n+2 hand: result after discarding each distinct kind. Sorted best-first:
+  // lower shanten, then larger ukeire count, then more ukeire kinds, then honors/terminals first,
+  // then higher kind (deterministic).
+  function discardOptions(counts, meldCount, visibleCounts) {
+    meldCount = meldCount || 0;
+    var vis = visibleCounts || counts;
+    var out = [];
+    for (var k = 0; k < 34; k++) {
+      if (counts[k] === 0) continue;
+      counts[k]--;
+      var u = ukeire(counts, meldCount, vis);
+      counts[k]++;
+      out.push({ kind: k, shanten: u.shanten, ukeire: u.tiles, count: u.count });
+    }
+    out.sort(function (a, b) {
+      if (a.shanten !== b.shanten) return a.shanten - b.shanten;
+      if (a.count !== b.count) return b.count - a.count;
+      if (a.ukeire.length !== b.ukeire.length) return b.ukeire.length - a.ukeire.length;
+      var ya = isYaochu(a.kind) ? 1 : 0, yb = isYaochu(b.kind) ? 1 : 0;
+      if (ya !== yb) return yb - ya;
+      return b.kind - a.kind;
+    });
+    return out;
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Scoring
+  // ---------------------------------------------------------------------------------------------
+  function ceil100(x) { return Math.ceil(x / 100) * 100; }
+
+  function limitNameFor(yakuman) {
+    if (yakuman === 1) return '役満';
+    if (yakuman === 2) return 'ダブル役満';
+    if (yakuman === 3) return 'トリプル役満';
+    return yakuman + '倍役満';
+  }
+
+  // Returns the payments without honba / riichi sticks. Only the fields relevant to the win type
+  // are filled; the others are 0.
+  function scoreTable(han, fu, isDealer, isTsumo, yakuman) {
+    yakuman = yakuman || 0;
+    var base, limitName = '';
+    if (yakuman > 0) { base = 8000 * yakuman; limitName = limitNameFor(yakuman); }
+    else if (han >= 13) { base = 8000; limitName = '数え役満'; }
+    else if (han >= 11) { base = 6000; limitName = '三倍満'; }
+    else if (han >= 8) { base = 4000; limitName = '倍満'; }
+    else if (han >= 6) { base = 3000; limitName = '跳満'; }
+    else if (han >= 5) { base = 2000; limitName = '満貫'; }
+    else {
+      base = fu * Math.pow(2, han + 2);
+      if (base >= 2000) { base = 2000; limitName = '満貫'; }
+    }
+    var r = { basePoints: base, ron: 0, tsumoDealer: 0, tsumoNonDealer: 0, limitName: limitName };
+    if (!isTsumo) r.ron = ceil100(base * (isDealer ? 6 : 4));
+    else if (isDealer) r.tsumoNonDealer = ceil100(3 * base);
+    else { r.tsumoDealer = ceil100(2 * base); r.tsumoNonDealer = ceil100(2 * base); }
+    return r;
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Win evaluation
+  // ---------------------------------------------------------------------------------------------
+  var GREEN = {}; [19, 20, 21, 23, 25, 32].forEach(function (k) { GREEN[k] = true; });
+  var WIND_JA = { 27: '東', 28: '南', 29: '西', 30: '北' };
+  var DRAGON_YAKU = { 31: '役牌 白', 32: '役牌 發', 33: '役牌 中' };
+
+  function meldToSet(meld) {
+    var kinds = meld.tiles.map(tKind);
+    var type = meld.type;
+    if (type === 'chi') {
+      var lo = Math.min.apply(null, kinds);
+      return { type: 'shuntsu', kind: lo, open: true, concealed: false, fromMeld: true };
+    }
+    if (type === 'pon') return { type: 'koutsu', kind: kinds[0], open: true, concealed: false, fromMeld: true };
+    if (type === 'ankan') return { type: 'kantsu', kind: kinds[0], open: false, concealed: true, fromMeld: true };
+    return { type: 'kantsu', kind: kinds[0], open: true, concealed: false, fromMeld: true }; // minkan / kakan
+  }
+
+  // All decompositions of closed counts into one pair + `need` sets.
+  function decompose(counts, need) {
+    var res = [];
+    var c = counts.slice();
+    var sets = [];
+    function rec() {
+      var i = 0;
+      while (i < 34 && c[i] === 0) i++;
+      if (i === 34) {
+        if (sets.length === need) res.push(sets.slice());
+        return;
+      }
+      if (sets.length >= need) return;
+      if (c[i] >= 3) {
+        c[i] -= 3; sets.push({ type: 'koutsu', kind: i }); rec(); sets.pop(); c[i] += 3;
+      }
+      if (i < 27 && i % 9 <= 6 && c[i + 1] > 0 && c[i + 2] > 0) {
+        c[i]--; c[i + 1]--; c[i + 2]--;
+        sets.push({ type: 'shuntsu', kind: i }); rec(); sets.pop();
+        c[i]++; c[i + 1]++; c[i + 2]++;
+      }
+    }
+    for (var p = 0; p < 34; p++) {
+      if (c[p] < 2) continue;
+      c[p] -= 2;
+      var before = res.length;
+      rec();
+      for (var q = before; q < res.length; q++) res[q] = { pair: p, sets: res[q] };
+      c[p] += 2;
+    }
+    return res;
+  }
+
+  function setTiles(s) {
+    if (s.type === 'shuntsu') return [s.kind, s.kind + 1, s.kind + 2];
+    if (s.type === 'koutsu') return [s.kind, s.kind, s.kind];
+    return [s.kind, s.kind, s.kind, s.kind];
+  }
+
+  function isTripletish(s) { return s.type === 'koutsu' || s.type === 'kantsu'; }
+
+  function buildContext(o) {
+    var hand = o.hand || [];
+    var melds = o.melds || [];
+    var closedKinds = hand.map(tKind);
+    var meldSets = melds.map(meldToSet);
+    var allKinds = closedKinds.slice();
+    var allTiles = hand.slice();
+    melds.forEach(function (m) { m.tiles.forEach(function (t) { allKinds.push(tKind(t)); allTiles.push(t); }); });
+    var menzen = melds.every(function (m) { return m.type === 'ankan'; });
+
+    var suits = {}, hasHonor = false, allYaochu = true, anyYaochu = false, allHonor = true, allGreen = true, allTerm = true;
+    allKinds.forEach(function (k) {
+      if (k >= 27) hasHonor = true; else suits[suitOf(k)] = true;
+      if (isYaochu(k)) anyYaochu = true; else allYaochu = false;
+      if (k < 27) allHonor = false;
+      if (!GREEN[k]) allGreen = false;
+      if (!isTerminal(k)) allTerm = false;
+    });
+    var nSuits = Object.keys(suits).length;
+
+    var counts = toCounts(closedKinds);
+    var winKind = tKind(o.winTile);
+
+    // chuuren (nine gates): fully closed (no melds at all), single suit.
+    var chuuren = 0;
+    if (melds.length === 0 && nSuits === 1 && !hasHonor) {
+      var off = allKinds[0] < 9 ? 0 : allKinds[0] < 18 ? 9 : 18;
+      var need = [3, 1, 1, 1, 1, 1, 1, 1, 3], ok = true;
+      for (var i = 0; i < 9; i++) if (counts[off + i] < need[i]) { ok = false; break; }
+      if (ok) {
+        chuuren = 1;
+        var c2 = counts.slice(); c2[winKind]--;
+        var pure = true;
+        for (var j = 0; j < 9; j++) if (c2[off + j] !== need[j]) { pure = false; break; }
+        if (pure) chuuren = 2;
+      }
+    }
+
+    // dora
+    var kitaCount = o.kitaCount || 0;
+    function countDora(indicators) {
+      var n = 0;
+      (indicators || []).forEach(function (ind) {
+        var d = doraOf(tKind(ind));
+        for (var q = 0; q < allKinds.length; q++) if (allKinds[q] === d) n++;
+        if (d === NORTH) n += kitaCount; // extracted 北 still count as 北 for dora
+      });
+      return n;
+    }
+    var riichiAny = !!(o.riichi || o.doubleRiichi);
+    var aka = 0;
+    allTiles.forEach(function (t) { if (tRed(t)) aka++; });
+
+    return {
+      o: o, hand: hand, melds: melds, meldSets: meldSets, counts: counts, closedKinds: closedKinds,
+      allKinds: allKinds, menzen: menzen, winKind: winKind, isTsumo: !!o.isTsumo,
+      seatWind: o.seatWind, roundWind: o.roundWind,
+      nSuits: nSuits, hasHonor: hasHonor, allYaochu: allYaochu, anyYaochu: anyYaochu,
+      allHonor: allHonor, allGreen: allGreen, allTerm: allTerm, chuuren: chuuren,
+      dora: countDora(o.doraIndicators),
+      ura: riichiAny ? countDora(o.uraIndicators) : 0,
+      aka: aka, kita: kitaCount
+    };
+  }
+
+  function situationalYaku(ctx) {
+    var o = ctx.o, y = [];
+    if (ctx.menzen) {
+      if (o.doubleRiichi) y.push({ name: 'ダブル立直', han: 2 });
+      else if (o.riichi) y.push({ name: '立直', han: 1 });
+      if ((o.riichi || o.doubleRiichi) && o.ippatsu) y.push({ name: '一発', han: 1 });
+      if (ctx.isTsumo) y.push({ name: '門前清自摸和', han: 1 });
+    }
+    if (o.rinshan && ctx.isTsumo) y.push({ name: '嶺上開花', han: 1 });
+    if (o.chankan && !ctx.isTsumo) y.push({ name: '槍槓', han: 1 });
+    if (o.haitei && ctx.isTsumo && !o.rinshan) y.push({ name: '海底摸月', han: 1 });
+    if (o.houtei && !ctx.isTsumo) y.push({ name: '河底撈魚', han: 1 });
+    return y;
+  }
+
+  function flagYakuman(ctx, y) {
+    if (ctx.o.tenhou) y.push({ name: '天和', han: 13, yakuman: 1 });
+    if (ctx.o.chiihou) y.push({ name: '地和', han: 13, yakuman: 1 });
+  }
+
+  function suitYaku(ctx, y) {
+    if (ctx.nSuits === 1 && !ctx.hasHonor) y.push({ name: '清一色', han: ctx.menzen ? 6 : 5 });
+    else if (ctx.nSuits === 1 && ctx.hasHonor) y.push({ name: '混一色', han: ctx.menzen ? 3 : 2 });
+  }
+
+  function evalKokushi(ctx) {
+    var y = [];
+    if (ctx.counts[ctx.winKind] === 2) y.push({ name: '国士無双十三面', han: 26, yakuman: 2 });
+    else y.push({ name: '国士無双', han: 13, yakuman: 1 });
+    flagYakuman(ctx, y);
+    return finalize(ctx, y, 0, { kokushi: true, tiles: ctx.closedKinds.slice().sort(function (a, b) { return a - b; }) });
+  }
+
+  function evalChiitoi(ctx) {
+    var pairs = [];
+    for (var k = 0; k < 34; k++) if (ctx.counts[k] === 2) pairs.push(k);
+    var dec = { chiitoi: true, pairs: pairs, wait: 'tanki' };
+    var ym = [];
+    if (ctx.allHonor) ym.push({ name: '字一色', han: 13, yakuman: 1 });
+    flagYakuman(ctx, ym);
+    if (ym.length) return finalize(ctx, ym, 25, dec);
+    var y = situationalYaku(ctx);
+    y.push({ name: '七対子', han: 2 });
+    if (!ctx.anyYaochu) y.push({ name: '断么九', han: 1 });
+    if (ctx.allYaochu) y.push({ name: '混老頭', han: 2 });
+    suitYaku(ctx, y);
+    return finalize(ctx, y, 25, dec);
+  }
+
+  function evalStandard(ctx, dec, waitIdx, waitType) {
+    var o = ctx.o;
+    var closed = dec.sets.map(function (s, idx) {
+      var conc = true;
+      if (s.type === 'koutsu' && idx === waitIdx && !ctx.isTsumo) conc = false; // ron-completed triplet
+      return { type: s.type, kind: s.kind, open: false, concealed: conc, fromMeld: false };
+    });
+    var all = closed.concat(ctx.meldSets);
+    var pair = dec.pair;
+
+    var nAnkou = 0, nKantsu = 0, nTrip = 0, nDragonTrip = 0, nWindTrip = 0, nShuntsu = 0;
+    all.forEach(function (s) {
+      if (isTripletish(s)) {
+        nTrip++;
+        if (s.concealed) nAnkou++;
+        if (isDragon(s.kind)) nDragonTrip++;
+        if (isWind(s.kind)) nWindTrip++;
+      } else nShuntsu++;
+      if (s.type === 'kantsu') nKantsu++;
+    });
+
+    var decOut = {
+      pair: pair, wait: waitType,
+      sets: all.map(function (s) {
+        return { type: s.type, tiles: setTiles(s), open: s.open, concealed: isTripletish(s) ? s.concealed : !s.open, fromMeld: s.fromMeld };
+      })
+    };
+
+    // --- yakuman ---
+    var ym = [];
+    if (nAnkou === 4) {
+      if (waitType === 'tanki') ym.push({ name: '四暗刻単騎', han: 26, yakuman: 2 });
+      else ym.push({ name: '四暗刻', han: 13, yakuman: 1 });
+    }
+    if (nDragonTrip === 3) ym.push({ name: '大三元', han: 13, yakuman: 1 });
+    if (nWindTrip === 4) ym.push({ name: '大四喜', han: 26, yakuman: 2 });
+    else if (nWindTrip === 3 && isWind(pair)) ym.push({ name: '小四喜', han: 13, yakuman: 1 });
+    if (ctx.allHonor) ym.push({ name: '字一色', han: 13, yakuman: 1 });
+    if (ctx.allGreen) ym.push({ name: '緑一色', han: 13, yakuman: 1 });
+    if (ctx.allTerm) ym.push({ name: '清老頭', han: 13, yakuman: 1 });
+    if (ctx.chuuren === 2) ym.push({ name: '純正九蓮宝燈', han: 26, yakuman: 2 });
+    else if (ctx.chuuren === 1) ym.push({ name: '九蓮宝燈', han: 13, yakuman: 1 });
+    if (nKantsu === 4) ym.push({ name: '四槓子', han: 13, yakuman: 1 });
+    flagYakuman(ctx, ym);
+
+    // --- fu ---
+    var pairYakuhai = isDragon(pair) || pair === ctx.roundWind || pair === ctx.seatWind;
+    var pinfu = ctx.menzen && nShuntsu === 4 && !pairYakuhai && waitType === 'ryanmen';
+    var fu;
+    if (pinfu) fu = ctx.isTsumo ? 20 : 30;
+    else {
+      fu = 20;
+      if (ctx.menzen && !ctx.isTsumo) fu += 10;
+      if (ctx.isTsumo) fu += 2;
+      all.forEach(function (s) {
+        if (!isTripletish(s)) return;
+        var f = isYaochu(s.kind) ? 4 : 2;
+        if (s.concealed) f *= 2;
+        if (s.type === 'kantsu') f *= 4;
+        fu += f;
+      });
+      if (isDragon(pair)) fu += 2;
+      if (pair === ctx.roundWind) fu += 2;
+      if (pair === ctx.seatWind) fu += 2;
+      if (waitType === 'tanki' || waitType === 'kanchan' || waitType === 'penchan') fu += 2;
+      if (fu === 20) fu = 30; // open pinfu-shaped ron
+      fu = Math.ceil(fu / 10) * 10;
+    }
+
+    if (ym.length) return finalize(ctx, ym, fu, decOut);
+
+    // --- normal yaku ---
+    var y = situationalYaku(ctx);
+    if (pinfu) y.push({ name: '平和', han: 1 });
+    if (ctx.menzen) {
+      var seqCount = {}, peiko = 0;
+      closed.forEach(function (s) { if (s.type === 'shuntsu') seqCount[s.kind] = (seqCount[s.kind] || 0) + 1; });
+      Object.keys(seqCount).forEach(function (k) { peiko += Math.floor(seqCount[k] / 2); });
+      if (peiko >= 2) y.push({ name: '二盃口', han: 3 });
+      else if (peiko === 1) y.push({ name: '一盃口', han: 1 });
+    }
+    if (!ctx.anyYaochu) y.push({ name: '断么九', han: 1 });
+    // yakuhai
+    all.forEach(function (s) {
+      if (!isTripletish(s)) return;
+      if (DRAGON_YAKU[s.kind]) y.push({ name: DRAGON_YAKU[s.kind], han: 1 });
+      if (s.kind === ctx.roundWind) y.push({ name: '場風 ' + WIND_JA[s.kind], han: 1 });
+      if (s.kind === ctx.seatWind) y.push({ name: '自風 ' + WIND_JA[s.kind], han: 1 });
+    });
+    // sanshoku / ittsu
+    var seqBySuit = { m: {}, p: {}, s: {} };
+    var tripBySuit = { m: {}, p: {}, s: {} };
+    all.forEach(function (s) {
+      if (s.kind >= 27) return;
+      var su = suitOf(s.kind), n = numOf(s.kind);
+      if (s.type === 'shuntsu') seqBySuit[su][n] = true; else tripBySuit[su][n] = true;
+    });
+    var sanshoku = false, doukou = false, ittsu = false;
+    for (var n = 1; n <= 9; n++) {
+      if (seqBySuit.m[n] && seqBySuit.p[n] && seqBySuit.s[n]) sanshoku = true;
+      if (tripBySuit.m[n] && tripBySuit.p[n] && tripBySuit.s[n]) doukou = true;
+    }
+    ['m', 'p', 's'].forEach(function (su) { if (seqBySuit[su][1] && seqBySuit[su][4] && seqBySuit[su][7]) ittsu = true; });
+    if (sanshoku) y.push({ name: '三色同順', han: ctx.menzen ? 2 : 1 });
+    if (ittsu) y.push({ name: '一気通貫', han: ctx.menzen ? 2 : 1 });
+    // chanta / junchan
+    var allBlocksYaochu = isYaochu(pair) && all.every(function (s) {
+      if (s.type === 'shuntsu') return s.kind % 9 === 0 || s.kind % 9 === 6;
+      return isYaochu(s.kind);
+    });
+    if (allBlocksYaochu && nShuntsu > 0) {
+      if (ctx.hasHonor) y.push({ name: '混全帯么九', han: ctx.menzen ? 2 : 1 });
+      else y.push({ name: '純全帯么九', han: ctx.menzen ? 3 : 2 });
+    }
+    if (nTrip === 4) y.push({ name: '対々和', han: 2 });
+    if (nAnkou === 3) y.push({ name: '三暗刻', han: 2 });
+    if (nKantsu === 3) y.push({ name: '三槓子', han: 2 });
+    if (doukou) y.push({ name: '三色同刻', han: 2 });
+    if (ctx.allYaochu) y.push({ name: '混老頭', han: 2 });
+    if (nDragonTrip === 2 && isDragon(pair)) y.push({ name: '小三元', han: 2 });
+    suitYaku(ctx, y);
+
+    return finalize(ctx, y, fu, decOut);
+  }
+
+  function finalize(ctx, yaku, fu, decomposition) {
+    var o = ctx.o;
+    var yakuman = 0;
+    yaku.forEach(function (x) { if (x.yakuman) yakuman += x.yakuman; });
+    var han = 0;
+    var list;
+    if (yakuman > 0) {
+      list = yaku.filter(function (x) { return x.yakuman; }).map(function (x) { return { name: x.name, han: x.han, yakuman: x.yakuman }; });
+      list.forEach(function (x) { han += x.han; });
+    } else {
+      if (yaku.length === 0) return null; // 役なし
+      list = yaku.slice();
+      if (ctx.dora) list.push({ name: 'ドラ', han: ctx.dora });
+      if (ctx.ura) list.push({ name: '裏ドラ', han: ctx.ura });
+      if (ctx.aka) list.push({ name: '赤ドラ', han: ctx.aka });
+      if (ctx.kita) list.push({ name: '抜きドラ', han: ctx.kita });
+      list.forEach(function (x) { han += x.han; });
+    }
+    var isDealer = !!o.isDealer;
+    var st = scoreTable(han, fu, isDealer, ctx.isTsumo, yakuman);
+    var honba = o.honba || 0, sticks = o.riichiSticks || 0;
+    var pay = { total: 0, ron: 0, tsumoDealer: 0, tsumoNonDealer: 0 };
+    if (!ctx.isTsumo) {
+      pay.ron = st.ron + 300 * honba;
+      pay.total = pay.ron;
+    } else if (isDealer) {
+      pay.tsumoNonDealer = st.tsumoNonDealer + 150 * honba;
+      pay.total = 2 * pay.tsumoNonDealer;
+    } else {
+      pay.tsumoDealer = st.tsumoDealer + 150 * honba;
+      pay.tsumoNonDealer = st.tsumoNonDealer + 150 * honba;
+      pay.total = pay.tsumoDealer + pay.tsumoNonDealer;
+    }
+    pay.total += 1000 * sticks;
+    return {
+      yaku: list, han: han, fu: fu, yakuman: yakuman, limitName: st.limitName,
+      basePoints: st.basePoints, payments: pay, decomposition: decomposition
+    };
+  }
+
+  function better(a, b) { // is a strictly better than b
+    if (!b) return true;
+    if (a.basePoints !== b.basePoints) return a.basePoints > b.basePoints;
+    if (a.han !== b.han) return a.han > b.han;
+    return a.fu > b.fu;
+  }
+
+  function evaluate(o) {
+    if (!o || !o.hand || !o.winTile) return null;
+    var melds = o.melds || [];
+    var k = melds.length;
+    if (k > 4 || o.hand.length !== 3 * (4 - k) + 2) return null;
+    var ctx = buildContext(o);
+    if (ctx.counts[ctx.winKind] === 0) return null;
+    var best = null, r;
+
+    if (k === 0 && shantenKokushi(ctx.counts) === -1) {
+      r = evalKokushi(ctx);
+      if (r && better(r, best)) best = r;
+    }
+    if (k === 0) {
+      var isChiitoi = true, np = 0;
+      for (var i = 0; i < 34; i++) { if (ctx.counts[i] === 2) np++; else if (ctx.counts[i] !== 0) isChiitoi = false; }
+      if (isChiitoi && np === 7) {
+        r = evalChiitoi(ctx);
+        if (r && better(r, best)) best = r;
+      }
+    }
+    var decs = decompose(ctx.counts, 4 - k);
+    var w = ctx.winKind;
+    decs.forEach(function (dec) {
+      var interp = [];
+      if (dec.pair === w) interp.push([-1, 'tanki']);
+      dec.sets.forEach(function (s, idx) {
+        if (s.type === 'koutsu' && s.kind === w) interp.push([idx, 'shanpon']);
+        else if (s.type === 'shuntsu' && w >= s.kind && w <= s.kind + 2) {
+          var pos = w - s.kind, num = numOf(s.kind);
+          var t;
+          if (pos === 1) t = 'kanchan';
+          else if (pos === 0) t = (num === 7) ? 'penchan' : 'ryanmen';
+          else t = (num === 1) ? 'penchan' : 'ryanmen';
+          interp.push([idx, t]);
+        }
+      });
+      interp.forEach(function (it) {
+        var res = evalStandard(ctx, dec, it[0], it[1]);
+        if (res && better(res, best)) best = res;
+      });
+    });
+    return best;
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  var Engine = {
+    EAST: EAST, SOUTH: SOUTH, WEST: WEST, NORTH: NORTH, HAKU: HAKU, HATSU: HATSU, CHUN: CHUN,
+    RED_IDS: RED_IDS.slice(),
+    SANMA_KINDS: SANMA_KINDS.slice(),
+    kindOf: kindOf, isRed: isRed, makeTile: makeTile, isSanmaKind: isSanmaKind,
+    tileName: tileName, tileNameJa: tileNameJa, suitOf: suitOf, numOf: numOf,
+    isHonor: isHonor, isTerminal: isTerminal, isYaochu: isYaochu,
+    doraOf: doraOf, newWall: newWall, toCounts: toCounts,
+    parseHand: parseHand, parseTiles: parseTiles, handToString: handToString,
+    shanten: shanten, shantenStandard: shantenStandard, shantenChiitoi: shantenChiitoi, shantenKokushi: shantenKokushi,
+    isAgari: isAgari, waits: waits, ukeire: ukeire, discardOptions: discardOptions,
+    evaluate: evaluate, scoreTable: scoreTable, ceil100: ceil100, decompose: decompose
+  };
+
+  Sanma.Engine = Engine;
+  if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
+})();
+
+
+/* ===== src/game.js ===== */
+/* SANMA ARCADE - game.js
+ * Prompt-driven 3-player mahjong (三人麻雀) state machine.
+ * No DOM, no timers. Works in the browser (window.Sanma.Game) and in Node (module.exports).
+ *
+ * Wall layout (also used by the `wallFactory` debug option; 108 tiles, index into the array):
+ *   [0..12]   dealer's hand, [13..25] dealer+1, [26..38] dealer+2
+ *   [39..93]  live wall, drawn in order from 39 (39 = dealer's first draw)
+ *   [94..97]  rinshan (replacement) tiles, used in order; after each rinshan draw the LAST live
+ *             tile is moved into the rinshan pool so the dead wall stays at 14
+ *   [98,100,102,104,106] dora indicators (1st revealed at start, next one per kan)
+ *   [99,101,103,105,107] matching ura-dora indicators
+ */
+(function () {
+  'use strict';
+
+  var Sanma = (typeof window !== 'undefined' ? (window.Sanma = window.Sanma || {}) : (global.Sanma = global.Sanma || {}));
+  const Engine = Sanma.Engine || (typeof require !== 'undefined' && require('./engine.js'));
+
+  const EAST = 27, NORTH = 30;
+  const DORA_POS = [98, 100, 102, 104, 106];
+  const URA_POS = [99, 101, 103, 105, 107];
+
+  function cmpTile(a, b) {
+    return (a.kind - b.kind) || ((b.red ? 1 : 0) - (a.red ? 1 : 0)) || (a.id - b.id);
+  }
+  function sortTiles(arr) { arr.sort(cmpTile); return arr; }
+  function kindsOf(tiles) { return tiles.map(function (t) { return t.kind; }); }
+  function copyMeld(m) {
+    return { type: m.type, tiles: m.tiles.slice(), calledTile: m.calledTile || null, from: (m.from === undefined ? null : m.from) };
+  }
+  function isYaochu(k) { return k >= 27 || k % 9 === 0 || k % 9 === 8; }
+
+  function Game(opts) {
+    opts = opts || {};
+    this.names = (opts.names || ['あなた', 'AI 1', 'AI 2']).slice(0, 3);
+    this.rng = opts.rng || Math.random;
+    this.startScore = opts.startScore != null ? opts.startScore : 35000;
+    this.returnScore = opts.returnScore != null ? opts.returnScore : 40000;
+    this.rounds = opts.rounds != null ? opts.rounds : 2;
+    this.onEvent = opts.onEvent || function () {};
+    this.wallFactory = opts.wallFactory || null;   // debug/tests: (handIndex, game) => 108 tiles or ids
+    this.firstDealer = opts.firstDealer || 0;
+    this.maxHands = opts.maxHands || 80;            // safety cap, never reached in practice
+    this.uma = opts.uma || [15, 0, -15];            // in thousands, by rank
+    this.oka = (this.returnScore - this.startScore) * 3 / 1000;
+
+    this.phase = 'init';
+    this.roundWind = EAST;
+    this.roundNumber = 1;
+    this.honba = 0;
+    this.riichiSticks = 0;
+    this.dealer = this.firstDealer;
+    this.turn = this.dealer;
+    this.handIndex = 0;          // number of hands started
+    this.finished = false;       // true after the final 'next' at game end
+    this.results = null;
+    this.errors = [];            // swallowed exceptions (engine or onEvent); should stay empty
+    this.pending = [null, null, null];
+    this.callCtx = null;
+    this.lastDiscard = null;
+    this.live = []; this.rinshan = []; this.doraInd = []; this.uraInd = [];
+    this.doraRevealed = 0; this.kanCount = 0; this.noCalls = true; this.discardSeq = 0;
+    this._busy = false;
+    this._queue = [];
+    this._next = null;
+    var self = this;
+    this.players = [0, 1, 2].map(function (i) {
+      var p = { index: i, name: self.names[i] || ('P' + i), score: self.startScore };
+      self._resetPlayer(p);
+      return p;
+    });
+  }
+
+  Game.prototype._resetPlayer = function (p) {
+    p.hand = []; p.drawnTile = null; p.melds = []; p.kita = []; p.discards = [];
+    p.riichi = false; p.doubleRiichi = false; p.pendingRiichi = false; p.ippatsu = false;
+    p.riichiFuriten = false; p.tempFuriten = false; p.calledKind = null;
+    p.rinshanDraw = false; p.haiteiDraw = false; p.waits = [];
+  };
+
+  // ------------------------------------------------------------------ plumbing
+  Game.prototype._emit = function (ev) {
+    try { this.onEvent(ev); } catch (e) {
+      this.errors.push(e);
+      if (typeof console !== 'undefined') console.error('[Sanma.Game] onEvent threw', e);
+    }
+  };
+  // Serialises all state changes so a controller may call respond() from inside onEvent.
+  Game.prototype._run = function (fn) {
+    if (this._busy) { this._queue.push(fn); return; }
+    this._busy = true;
+    try {
+      fn.call(this);
+      while (this._queue.length) this._queue.shift().call(this);
+    } finally { this._busy = false; this._queue.length = 0; }
+  };
+  Game.prototype._prompt = function (p, prompt) {
+    this.pending[p] = { prompt: prompt, answered: false, choice: null };
+    this._emit({ type: 'prompt', player: p, prompt: prompt });
+  };
+
+  Game.prototype.seatWind = function (p) { return EAST + ((p - this.dealer + 3) % 3); };
+  Game.prototype._closed = function (pl) { return pl.drawnTile ? pl.hand.concat([pl.drawnTile]) : pl.hand.slice(); };
+  Game.prototype._isMenzen = function (pl) { return pl.melds.every(function (m) { return m.type === 'ankan'; }); };
+  Game.prototype._revealedDora = function () { return this.doraInd.slice(0, this.doraRevealed); };
+  Game.prototype._computeWaits = function (pl) {
+    return Engine.waits(Engine.toCounts(kindsOf(pl.hand)), pl.melds.length);
+  };
+  Game.prototype._isFuriten = function (pl) {
+    if (pl.riichiFuriten || pl.tempFuriten) return true;
+    for (var i = 0; i < pl.waits.length; i++) {
+      var k = pl.waits[i];
+      for (var j = 0; j < pl.discards.length; j++) if (pl.discards[j].tile.kind === k) return true;
+    }
+    return false;
+  };
+  Game.prototype._breakFirstRound = function () {
+    this.noCalls = false;
+    this.players.forEach(function (p) { p.ippatsu = false; });
+  };
+  Game.prototype._ranking = function () {
+    var fd = this.firstDealer, pl = this.players;
+    return [0, 1, 2].sort(function (a, b) {
+      return (pl[b].score - pl[a].score) || (((a - fd + 3) % 3) - ((b - fd + 3) % 3));
+    });
+  };
+
+  // ------------------------------------------------------------------ public API
+  Game.prototype.start = function () {
+    if (this.phase !== 'init') throw new Error('Game already started');
+    this._run(function () { this._startRound(); });
+  };
+
+  Game.prototype.respond = function (p, choice) {
+    var pr = this.pending[p];
+    if (!pr || pr.answered) throw new Error('No pending prompt for player ' + p);
+    pr.choice = this._validate(pr.prompt, choice);
+    pr.answered = true;
+    this._run(function () { this._handleResponse(p); });
+  };
+
+  Game.prototype.isOver = function () { return this.finished; };
+
+  Game.prototype.getView = function (v) {
+    var self = this;
+    var pend = this.pending[v];
+    return {
+      phase: this.phase === 'init' ? 'playing' : this.phase,
+      roundWind: this.roundWind, roundNumber: this.roundNumber, honba: this.honba,
+      riichiSticks: this.riichiSticks, wallRemaining: this.live.length,
+      doraIndicators: this._revealedDora(), dealer: this.dealer, turn: this.turn, viewer: v,
+      kanCount: this.kanCount,
+      lastDiscard: this.lastDiscard ? { player: this.lastDiscard.player, tile: this.lastDiscard.tile } : null,
+      players: this.players.map(function (pl, i) {
+        var mine = i === v;
+        return {
+          name: pl.name, score: pl.score, seatWind: self.seatWind(i), isDealer: i === self.dealer,
+          riichi: pl.riichi, doubleRiichi: pl.doubleRiichi,
+          hand: mine ? pl.hand.slice() : pl.hand.map(function () { return null; }),
+          drawnTile: mine ? pl.drawnTile : (pl.drawnTile ? { hidden: true } : null),
+          handCount: pl.hand.length + (pl.drawnTile ? 1 : 0),
+          discards: pl.discards.map(function (d) { return { tile: d.tile, riichi: d.riichi, taken: d.taken, order: d.order }; }),
+          melds: pl.melds.map(copyMeld),
+          kita: pl.kita.slice(),
+          furiten: mine ? self._isFuriten(pl) : false
+        };
+      }),
+      pending: pend && !pend.answered ? pend.prompt : null
+    };
+  };
+
+  Game.prototype.getState = function () {
+    return {
+      phase: this.phase, finished: this.finished, roundWind: this.roundWind, roundNumber: this.roundNumber,
+      honba: this.honba, riichiSticks: this.riichiSticks, dealer: this.dealer, turn: this.turn,
+      handIndex: this.handIndex, live: this.live, rinshan: this.rinshan, doraIndicators: this.doraInd,
+      uraIndicators: this.uraInd, doraRevealed: this.doraRevealed, kanCount: this.kanCount,
+      noCalls: this.noCalls, players: this.players, pending: this.pending, callCtx: this.callCtx,
+      lastDiscard: this.lastDiscard, results: this.results, errors: this.errors
+    };
+  };
+
+  // ------------------------------------------------------------------ validation
+  Game.prototype._validate = function (prompt, c) {
+    function bad(msg) { throw new Error('Invalid response: ' + msg + ' ' + JSON.stringify(c)); }
+    if (!c || typeof c !== 'object') bad('choice must be an object');
+    if (prompt.kind === 'continue') {
+      if (c.action !== 'next') bad('expected next');
+      return { action: 'next' };
+    }
+    if (prompt.kind === 'turn') {
+      switch (c.action) {
+        case 'discard':
+          if (prompt.discardable.indexOf(c.tileId) < 0) bad('tile not discardable');
+          if (c.riichi && (!prompt.canRiichi || prompt.riichiDiscards.indexOf(c.tileId) < 0)) bad('riichi not allowed');
+          return { action: 'discard', tileId: c.tileId, riichi: !!c.riichi };
+        case 'tsumo': if (!prompt.canTsumo) bad('cannot tsumo'); return { action: 'tsumo' };
+        case 'kita': if (!prompt.canKita) bad('cannot kita'); return { action: 'kita' };
+        case 'kyuushu': if (!prompt.canKyuushu) bad('cannot kyuushu'); return { action: 'kyuushu' };
+        case 'kan': {
+          var k = prompt.kans.filter(function (x) { return x.kind === c.kind && (!c.type || x.type === c.type); })[0];
+          if (!k) bad('kan not allowed');
+          return { action: 'kan', kind: k.kind, type: k.type };
+        }
+        default: bad('unknown action');
+      }
+    }
+    if (prompt.kind === 'call') {
+      switch (c.action) {
+        case 'pass': return { action: 'pass' };
+        case 'ron': if (!prompt.canRon) bad('cannot ron'); return { action: 'ron' };
+        case 'kan': if (!prompt.canKan) bad('cannot kan'); return { action: 'kan' };
+        case 'pon': {
+          if (!prompt.canPon) bad('cannot pon');
+          var ids = prompt.ponTileIds[0];
+          if (c.tileIds) {
+            var want = c.tileIds.slice().sort().join(',');
+            ids = prompt.ponTileIds.filter(function (o) { return o.slice().sort().join(',') === want; })[0];
+            if (!ids) bad('bad pon tiles');
+          }
+          return { action: 'pon', tileIds: ids.slice() };
+        }
+        default: bad('unknown action');
+      }
+    }
+    bad('unknown prompt');
+  };
+
+  Game.prototype._handleResponse = function (p) {
+    var pr = this.pending[p];
+    this.pending[p] = null;
+    if (pr.prompt.kind === 'turn') this._handleTurn(p, pr.choice);
+    else if (pr.prompt.kind === 'continue') this._handleContinue();
+    else if (pr.prompt.kind === 'call') {
+      var ctx = this.callCtx;
+      ctx.responses[p] = pr.choice;
+      ctx.waiting--;
+      if (ctx.waiting === 0) this._resolveCalls(ctx);
+    }
+  };
+
+  // ------------------------------------------------------------------ round flow
+  Game.prototype._makeWall = function () {
+    if (!this.wallFactory) return Engine.newWall(this.rng);
+    var w = this.wallFactory(this.handIndex - 1, this);
+    if (!w) return Engine.newWall(this.rng);
+    w = w.map(function (t) { return typeof t === 'number' ? Engine.makeTile(t) : t; });
+    var seen = {};
+    if (w.length !== 108) throw new Error('wallFactory must return 108 tiles');
+    w.forEach(function (t) {
+      if (seen[t.id] || !Engine.isSanmaKind(t.kind)) throw new Error('wallFactory: bad/duplicate tile ' + t.id);
+      seen[t.id] = true;
+    });
+    return w;
+  };
+
+  Game.prototype._startRound = function () {
+    var self = this;
+    this.phase = 'playing';
+    this.handIndex++;
+    var tiles = this._makeWall();
+    this.players.forEach(function (p) { self._resetPlayer(p); });
+    for (var k = 0; k < 3; k++) {
+      var pl = this.players[(this.dealer + k) % 3];
+      pl.hand = sortTiles(tiles.slice(13 * k, 13 * k + 13));
+    }
+    this.live = tiles.slice(39, 94);
+    this.rinshan = tiles.slice(94, 98);
+    this.doraInd = DORA_POS.map(function (i) { return tiles[i]; });
+    this.uraInd = URA_POS.map(function (i) { return tiles[i]; });
+    this.doraRevealed = 1;
+    this.kanCount = 0;
+    this.noCalls = true;
+    this.discardSeq = 0;
+    this.lastDiscard = null;
+    this.callCtx = null;
+    this._next = null;
+    this.players.forEach(function (p) { p.waits = self._computeWaits(p); });
+    this._emit({
+      type: 'roundStart', roundWind: this.roundWind, roundNumber: this.roundNumber, honba: this.honba,
+      dealer: this.dealer, doraIndicator: this.doraInd[0], riichiSticks: this.riichiSticks,
+      scores: this.players.map(function (p) { return p.score; }),
+      seatWinds: [0, 1, 2].map(function (i) { return self.seatWind(i); })
+    });
+    this._draw(this.dealer, false);
+  };
+
+  Game.prototype._draw = function (p, fromDead) {
+    var pl = this.players[p];
+    var tile;
+    if (fromDead) {
+      tile = this.rinshan.shift();
+      this.rinshan.push(this.live.pop());
+      pl.rinshanDraw = true; pl.haiteiDraw = false;
+    } else {
+      tile = this.live.shift();
+      pl.rinshanDraw = false; pl.haiteiDraw = this.live.length === 0;
+    }
+    pl.drawnTile = tile;
+    pl.tempFuriten = false;
+    pl.calledKind = null;
+    this.turn = p;
+    this._emit({ type: 'draw', player: p, tile: tile, fromDeadWall: !!fromDead, wallRemaining: this.live.length });
+    this._turnPrompt(p);
+  };
+
+  Game.prototype._turnPrompt = function (p) {
+    var pl = this.players[p];
+    var drawn = pl.drawnTile;
+    var closed = this._closed(pl);
+    var counts = Engine.toCounts(kindsOf(closed));
+    var m = pl.melds.length;
+    var i, k;
+
+    var canTsumo = false;
+    if (drawn && Engine.isAgari(counts, m)) canTsumo = !!this._evalWin(p, closed, drawn, true, {}, false);
+
+    var canRiichi = false, riichiDiscards = [];
+    if (drawn && !pl.riichi && this._isMenzen(pl) && pl.score >= 1000 && this.live.length >= 4 &&
+        Engine.shanten(counts, m) <= 0) {
+      var okKind = {};
+      for (k = 0; k < 34; k++) {
+        if (!counts[k]) continue;
+        counts[k]--;
+        if (Engine.waits(counts, m).length) okKind[k] = true;
+        counts[k]++;
+      }
+      closed.forEach(function (t) { if (okKind[t.kind]) riichiDiscards.push(t.id); });
+      canRiichi = riichiDiscards.length > 0;
+    }
+
+    var canAct = !!drawn && this.live.length > 0;
+    var canKita = canAct && (pl.riichi ? drawn.kind === NORTH : counts[NORTH] > 0);
+
+    var kans = [];
+    if (canAct && this.kanCount < 4) {
+      for (k = 0; k < 34; k++) {
+        if (counts[k] !== 4) continue;
+        if (pl.riichi) {
+          if (drawn.kind !== k) continue;
+          var before = Engine.waits(Engine.toCounts(kindsOf(pl.hand)), m);
+          var c2 = counts.slice(); c2[k] = 0;
+          var after = Engine.waits(c2, m + 1);
+          if (before.join(',') !== after.join(',') || !after.length) continue;
+        }
+        kans.push({ type: 'ankan', kind: k, tileIds: closed.filter(function (t) { return t.kind === k; }).map(function (t) { return t.id; }) });
+      }
+      if (!pl.riichi) {
+        pl.melds.forEach(function (md) {
+          if (md.type !== 'pon') return;
+          var kk = md.tiles[0].kind;
+          var t = closed.filter(function (x) { return x.kind === kk; })[0];
+          if (t) kans.push({ type: 'kakan', kind: kk, tileIds: [t.id] });
+        });
+      }
+    }
+
+    var discardable;
+    if (pl.riichi && drawn) discardable = [drawn.id];
+    else {
+      discardable = closed.filter(function (t) { return t.kind !== pl.calledKind; }).map(function (t) { return t.id; });
+      if (!discardable.length) discardable = closed.map(function (t) { return t.id; });
+    }
+
+    var canKyuushu = false;
+    if (drawn && this.noCalls && pl.discards.length === 0 && !pl.rinshanDraw && pl.kita.length === 0) {
+      var distinct = 0;
+      for (k = 0; k < 34; k++) if (counts[k] && isYaochu(k)) distinct++;
+      canKyuushu = distinct >= 9;
+    }
+
+    this._prompt(p, {
+      kind: 'turn', drawnTile: drawn, canTsumo: canTsumo, canRiichi: canRiichi, riichiDiscards: riichiDiscards,
+      canKita: canKita, kans: kans, discardable: discardable, canKyuushu: canKyuushu
+    });
+  };
+
+  Game.prototype._handleTurn = function (p, c) {
+    switch (c.action) {
+      case 'discard': return this._discard(p, c.tileId, c.riichi);
+      case 'tsumo': {
+        var pl = this.players[p];
+        return this._win([p], true, pl.drawnTile, null, {});
+      }
+      case 'kita': return this._kita(p);
+      case 'kan': return this._selfKan(p, c.kind, c.type);
+      case 'kyuushu': return this._kyuushu(p);
+    }
+  };
+
+  // Removes the tile with `id` from the closed tiles; the drawn tile (if any) merges into the hand.
+  Game.prototype._takeFromClosed = function (pl, id) {
+    var t;
+    if (pl.drawnTile && pl.drawnTile.id === id) { t = pl.drawnTile; pl.drawnTile = null; return t; }
+    var idx = pl.hand.findIndex(function (x) { return x.id === id; });
+    t = pl.hand.splice(idx, 1)[0];
+    if (pl.drawnTile) { pl.hand.push(pl.drawnTile); pl.drawnTile = null; sortTiles(pl.hand); }
+    return t;
+  };
+
+  Game.prototype._discard = function (p, id, riichi) {
+    var pl = this.players[p];
+    var tsumogiri = !!(pl.drawnTile && pl.drawnTile.id === id);
+    if (riichi) {
+      pl.riichi = true;
+      pl.doubleRiichi = pl.discards.length === 0 && this.noCalls;
+      pl.pendingRiichi = true;
+      this._emit({ type: 'riichi', player: p, double: pl.doubleRiichi });
+    } else if (pl.ippatsu) {
+      pl.ippatsu = false;
+    }
+    var tile = this._takeFromClosed(pl, id);
+    // make sure any leftover drawn tile merged (tsumogiri case leaves hand untouched)
+    pl.calledKind = null;
+    pl.rinshanDraw = false;
+    pl.haiteiDraw = false;
+    pl.discards.push({ tile: tile, riichi: !!riichi, taken: false, order: this.discardSeq++ });
+    pl.waits = this._computeWaits(pl);
+    this.lastDiscard = { player: p, tile: tile };
+    this._emit({ type: 'discard', player: p, tile: tile, riichi: !!riichi, tsumogiri: tsumogiri });
+    this._openCalls(p, tile, false);
+  };
+
+  Game.prototype._openCalls = function (from, tile, chankan) {
+    var ctx = { from: from, tile: tile, chankan: chankan, responses: [null, null, null], waiting: 0, shape: [false, false, false] };
+    var houtei = !chankan && this.live.length === 0;
+    var prompts = [];
+    for (var d = 1; d <= 2; d++) {
+      var q = (from + d) % 3, ql = this.players[q];
+      var shape = ql.waits.indexOf(tile.kind) >= 0;
+      ctx.shape[q] = shape;
+      var canRon = shape && !this._isFuriten(ql) &&
+        !!this._evalWin(q, ql.hand.concat([tile]), tile, false, { chankan: chankan, houtei: houtei }, false);
+      var canPon = false, ponTileIds = [], canKan = false, kanTileIds = [];
+      if (!chankan && !ql.riichi && this.live.length > 0) {
+        var same = ql.hand.filter(function (t) { return t.kind === tile.kind; });
+        if (same.length >= 2) {
+          canPon = true;
+          var seenOpt = {};
+          for (var a = 0; a < same.length; a++) for (var b = a + 1; b < same.length; b++) {
+            var key = (same[a].red ? 1 : 0) + (same[b].red ? 1 : 0);
+            if (seenOpt[key]) continue;
+            seenOpt[key] = true;
+            ponTileIds.push([same[a].id, same[b].id]);
+          }
+        }
+        if (same.length >= 3 && this.kanCount < 4) {
+          canKan = true;
+          kanTileIds = same.slice(0, 3).map(function (t) { return t.id; });
+        }
+      }
+      if (canRon || canPon || canKan) {
+        prompts.push([q, {
+          kind: 'call', from: from, tile: tile, canRon: canRon, canPon: canPon, ponTileIds: ponTileIds,
+          canKan: canKan, kanTileIds: kanTileIds, isChankan: !!chankan
+        }]);
+      }
+    }
+    if (!prompts.length) { this._resolveCalls(ctx); return; }
+    this.callCtx = ctx;
+    ctx.waiting = prompts.length;
+    var self = this;
+    prompts.forEach(function (x) { self.pending[x[0]] = { prompt: x[1], answered: false, choice: null }; });
+    prompts.forEach(function (x) { self._emit({ type: 'prompt', player: x[0], prompt: x[1] }); });
+  };
+
+  Game.prototype._resolveCalls = function (ctx) {
+    this.callCtx = null;
+    var from = ctx.from, rons = [], caller = -1, callChoice = null;
+    for (var d = 1; d <= 2; d++) {
+      var q = (from + d) % 3, r = ctx.responses[q];
+      if (r && r.action === 'ron') rons.push(q);
+      else {
+        if (ctx.shape[q]) { // missed a winning tile => furiten
+          if (this.players[q].riichi) this.players[q].riichiFuriten = true;
+          else this.players[q].tempFuriten = true;
+        }
+        if (r && (r.action === 'pon' || r.action === 'kan') && caller < 0) { caller = q; callChoice = r; }
+      }
+    }
+    if (rons.length) {
+      this._win(rons, false, ctx.tile, from, { chankan: ctx.chankan, houtei: !ctx.chankan && this.live.length === 0 });
+      return;
+    }
+    if (!ctx.chankan) this._finalizeRiichi(from);
+    if (caller >= 0) {
+      if (callChoice.action === 'pon') this._pon(caller, ctx, callChoice.tileIds);
+      else this._minkan(caller, ctx);
+      return;
+    }
+    if (ctx.chankan) { this._finishKakan(from); return; }
+    this._nextTurn(from);
+  };
+
+  Game.prototype._finalizeRiichi = function (p) {
+    var pl = this.players[p];
+    if (!pl.pendingRiichi) return;
+    pl.pendingRiichi = false;
+    pl.score -= 1000;
+    this.riichiSticks++;
+    pl.ippatsu = true;
+    this._emit({ type: 'riichiStick', player: p, riichiSticks: this.riichiSticks, scores: this.players.map(function (x) { return x.score; }) });
+  };
+
+  Game.prototype._nextTurn = function (from) {
+    if (this.live.length === 0) { this._ryuukyoku(); return; }
+    this._draw((from + 1) % 3, false);
+  };
+
+  Game.prototype._removeIds = function (pl, ids) {
+    return ids.map(function (id) {
+      var idx = pl.hand.findIndex(function (t) { return t.id === id; });
+      return pl.hand.splice(idx, 1)[0];
+    });
+  };
+
+  Game.prototype._takeDiscard = function (ctx) {
+    var d = this.players[ctx.from].discards;
+    d[d.length - 1].taken = true;
+    this.lastDiscard = null;
+  };
+
+  Game.prototype._pon = function (q, ctx, ids) {
+    var ql = this.players[q];
+    this._takeDiscard(ctx);
+    var own = this._removeIds(ql, ids);
+    var meld = { type: 'pon', tiles: sortTiles(own.concat([ctx.tile])), calledTile: ctx.tile, from: ctx.from };
+    ql.melds.push(meld);
+    this._breakFirstRound();
+    ql.calledKind = ctx.tile.kind;
+    ql.tempFuriten = false;
+    ql.drawnTile = null; ql.rinshanDraw = false; ql.haiteiDraw = false;
+    this.turn = q;
+    this._emit({ type: 'call', player: q, from: ctx.from, meld: copyMeld(meld) });
+    this._turnPrompt(q);
+  };
+
+  Game.prototype._minkan = function (q, ctx) {
+    var ql = this.players[q];
+    this._takeDiscard(ctx);
+    var own = ql.hand.filter(function (t) { return t.kind === ctx.tile.kind; }).slice(0, 3);
+    this._removeIds(ql, own.map(function (t) { return t.id; }));
+    var meld = { type: 'minkan', tiles: sortTiles(own.concat([ctx.tile])), calledTile: ctx.tile, from: ctx.from };
+    ql.melds.push(meld);
+    this.kanCount++;
+    this._breakFirstRound();
+    ql.tempFuriten = false;
+    this.turn = q;
+    this._emit({ type: 'call', player: q, from: ctx.from, meld: copyMeld(meld) });
+    this._flipDora();
+    this._draw(q, true);
+  };
+
+  Game.prototype._flipDora = function () {
+    if (this.doraRevealed >= 5) return;
+    this.doraRevealed++;
+    this._emit({ type: 'newDora', indicator: this.doraInd[this.doraRevealed - 1] });
+  };
+
+  Game.prototype._kita = function (p) {
+    var pl = this.players[p];
+    var t;
+    if (pl.drawnTile && pl.drawnTile.kind === NORTH) t = this._takeFromClosed(pl, pl.drawnTile.id);
+    else t = this._takeFromClosed(pl, pl.hand.filter(function (x) { return x.kind === NORTH; })[0].id);
+    pl.kita.push(t);
+    this._emit({ type: 'kita', player: p, tile: t });
+    this._draw(p, true);
+  };
+
+  Game.prototype._selfKan = function (p, kind, type) {
+    var pl = this.players[p];
+    var self = this;
+    if (type === 'ankan') {
+      var ids = this._closed(pl).filter(function (t) { return t.kind === kind; }).map(function (t) { return t.id; });
+      var tiles = ids.map(function (id) { return self._takeFromClosed(pl, id); });
+      var meld = { type: 'ankan', tiles: sortTiles(tiles), calledTile: null, from: null };
+      pl.melds.push(meld);
+      this.kanCount++;
+      this._breakFirstRound();
+      this._emit({ type: 'kan', player: p, meld: copyMeld(meld) });
+      this._flipDora();
+      this._draw(p, true);
+      return;
+    }
+    // kakan
+    var t = this._closed(pl).filter(function (x) { return x.kind === kind; })[0];
+    this._takeFromClosed(pl, t.id);
+    var idx = pl.melds.findIndex(function (m) { return m.type === 'pon' && m.tiles[0].kind === kind; });
+    var old = pl.melds[idx];
+    var nm = { type: 'kakan', tiles: sortTiles(old.tiles.concat([t])), calledTile: old.calledTile, from: old.from, addedTile: t };
+    pl.melds[idx] = nm;
+    pl.rinshanDraw = false;
+    this._emit({ type: 'kan', player: p, meld: copyMeld(nm) });
+    this._openCalls(p, t, true); // chankan window
+  };
+
+  Game.prototype._finishKakan = function (p) {
+    this.kanCount++;
+    this._breakFirstRound();
+    this._flipDora();
+    this._draw(p, true);
+  };
+
+  // ------------------------------------------------------------------ wins & draws
+  Game.prototype._evalWin = function (p, hand, winTile, isTsumo, flags, withUra) {
+    var pl = this.players[p];
+    var first = isTsumo && this.noCalls && pl.discards.length === 0 && !pl.rinshanDraw && pl.kita.length === 0;
+    var n = this.doraRevealed;
+    var args = {
+      hand: hand, melds: pl.melds, winTile: winTile, isTsumo: isTsumo,
+      seatWind: this.seatWind(p), roundWind: this.roundWind,
+      riichi: pl.riichi && !pl.pendingRiichi, doubleRiichi: pl.doubleRiichi && !pl.pendingRiichi,
+      ippatsu: pl.riichi && pl.ippatsu,
+      rinshan: isTsumo && pl.rinshanDraw, chankan: !isTsumo && !!flags.chankan,
+      haitei: isTsumo && pl.haiteiDraw && !pl.rinshanDraw, houtei: !isTsumo && !!flags.houtei,
+      tenhou: first && p === this.dealer, chiihou: first && p !== this.dealer,
+      doraIndicators: this.doraInd.slice(0, n),
+      uraIndicators: withUra && pl.riichi ? this.uraInd.slice(0, n) : [],
+      kitaCount: pl.kita.length, isDealer: p === this.dealer, honba: 0, riichiSticks: 0
+    };
+    try { return Engine.evaluate(args); } catch (e) {
+      this.errors.push(e);
+      if (typeof console !== 'undefined') console.error('[Sanma.Game] Engine.evaluate threw', e);
+      return null;
+    }
+  };
+
+  Game.prototype._basePays = function (res, isDealer, isTsumo) {
+    var pay = res.payments;
+    if (!pay || typeof pay.total !== 'number') pay = Engine.scoreTable(res.han, res.fu, isDealer, isTsumo, res.yakuman);
+    return { ron: pay.ron || 0, tsumoDealer: pay.tsumoDealer || 0, tsumoNonDealer: pay.tsumoNonDealer || 0 };
+  };
+
+  // winners: player indices in head-bump order (closest after the discarder first).
+  Game.prototype._win = function (winnerIdx, isTsumo, winTile, from, flags) {
+    var self = this;
+    var deltas = [0, 0, 0];
+    var winners = [];
+    var first = true;
+    winnerIdx.forEach(function (w) {
+      var pl = self.players[w];
+      var hand = isTsumo ? self._closed(pl) : pl.hand.concat([winTile]);
+      var res = self._evalWin(w, hand, winTile, isTsumo, flags, true);
+      if (!res) { self.errors.push(new Error('win without valid evaluation for player ' + w)); return; }
+      var isDealer = w === self.dealer;
+      var base = self._basePays(res, isDealer, isTsumo);
+      var honba = first ? self.honba : 0;
+      var sticks = first ? self.riichiSticks : 0;
+      var pay = { total: 0, ron: 0, tsumoDealer: 0, tsumoNonDealer: 0, honba: honba, riichiSticks: sticks };
+      if (isTsumo) {
+        for (var o = 0; o < 3; o++) {
+          if (o === w) continue;
+          var amt = (o === self.dealer ? base.tsumoDealer : base.tsumoNonDealer) + 150 * honba;
+          if (o === self.dealer) pay.tsumoDealer = amt; else pay.tsumoNonDealer = amt;
+          deltas[o] -= amt; deltas[w] += amt; pay.total += amt;
+        }
+      } else {
+        pay.ron = base.ron + 300 * honba;
+        deltas[from] -= pay.ron; deltas[w] += pay.ron; pay.total += pay.ron;
+      }
+      deltas[w] += sticks * 1000; pay.total += sticks * 1000;
+      if (first) self.riichiSticks = 0;
+      first = false;
+      res.payments = pay;
+      winners.push({
+        player: w, from: isTsumo ? null : from, result: res, hand: sortTiles(hand.slice()),
+        melds: pl.melds.map(copyMeld), kita: pl.kita.slice(), winTile: winTile,
+        doraIndicators: self._revealedDora(),
+        uraIndicators: pl.riichi ? self.uraInd.slice(0, self.doraRevealed) : []
+      });
+    });
+    this.players.forEach(function (p, i) { p.score += deltas[i]; });
+    this.lastDiscard = null;
+    this._emit({ type: 'win', winners: winners, scoreDeltas: deltas, isTsumo: isTsumo, from: isTsumo ? null : from,
+      scores: this.players.map(function (p) { return p.score; }) });
+    var renchan = winners.some(function (x) { return x.player === self.dealer; });
+    this._endHand(renchan, false);
+  };
+
+  Game.prototype._ryuukyoku = function () {
+    var self = this;
+    var tenpai = this.players.map(function (p) { return p.waits.length > 0; });
+    var n = tenpai.filter(Boolean).length;
+    var deltas = [0, 0, 0];
+    if (n === 1 || n === 2) {
+      tenpai.forEach(function (t, i) {
+        if (n === 1) deltas[i] = t ? 3000 : -1500;
+        else deltas[i] = t ? 1500 : -3000;
+      });
+    }
+    this.players.forEach(function (p, i) { p.score += deltas[i]; });
+    this._emit({
+      type: 'draw_end', reason: 'exhaustive', tenpai: tenpai,
+      hands: this.players.map(function (p, i) { return tenpai[i] ? self._closed(p) : null; }),
+      scoreDeltas: deltas, scores: this.players.map(function (p) { return p.score; })
+    });
+    this._endHand(tenpai[this.dealer], true);
+  };
+
+  Game.prototype._kyuushu = function (p) {
+    var self = this;
+    this._emit({
+      type: 'draw_end', reason: 'kyuushu', player: p, tenpai: [false, false, false],
+      hands: this.players.map(function (x, i) { return i === p ? self._closed(x) : null; }),
+      scoreDeltas: [0, 0, 0], scores: this.players.map(function (x) { return x.score; })
+    });
+    this._endHand(true, true);
+  };
+
+  Game.prototype._endHand = function (renchan, isDraw) {
+    this.honba = (renchan || isDraw) ? this.honba + 1 : 0;
+    this.phase = 'roundEnd';
+    this.turn = -1;
+    var tobi = this.players.some(function (p) { return p.score < 0; });
+    var isLast = this.roundWind === EAST + this.rounds - 1 && this.roundNumber === 3;
+    var over = tobi || this.handIndex >= this.maxHands;
+    if (!over && isLast) {
+      if (!renchan) over = true;
+      else if (this._ranking()[0] === this.dealer) over = true;
+    }
+    this._next = { renchan: renchan, over: over };
+    this._emit({ type: 'roundEnd', scores: this.players.map(function (p) { return p.score; }),
+      honba: this.honba, riichiSticks: this.riichiSticks, renchan: renchan, gameOver: over });
+    this._prompt(0, { kind: 'continue' });
+  };
+
+  Game.prototype._handleContinue = function () {
+    if (this.phase === 'roundEnd') {
+      if (this._next.over) { this._endGame(); return; }
+      if (!this._next.renchan) {
+        this.roundNumber++;
+        if (this.roundNumber > 3) { this.roundNumber = 1; this.roundWind++; }
+        this.dealer = (this.firstDealer + this.roundNumber - 1) % 3;
+      }
+      this._startRound();
+    } else if (this.phase === 'gameEnd') {
+      this.finished = true;
+    }
+  };
+
+  Game.prototype._endGame = function () {
+    var self = this;
+    var ranking = this._ranking();
+    var sticksTo = null;
+    if (this.riichiSticks) {
+      sticksTo = ranking[0];
+      this.players[sticksTo].score += this.riichiSticks * 1000;
+      this.riichiSticks = 0;
+    }
+    this.results = ranking.map(function (p, r) {
+      var sc = self.players[p].score;
+      var pts = (sc - self.returnScore) / 1000 + self.uma[r] + (r === 0 ? self.oka : 0);
+      return { player: p, name: self.players[p].name, score: sc, rank: r + 1, points: Math.round(pts * 10) / 10 };
+    });
+    // honba tsumo payments (150 each) can leave 50-point remainders: 1st absorbs the rounding so points sum to 0
+    var rest = this.results[1].points + this.results[2].points;
+    this.results[0].points = Math.round(-rest * 10) / 10;
+    this.phase = 'gameEnd';
+    this.turn = -1;
+    this._emit({
+      type: 'gameEnd', results: this.results,
+      rule: { startScore: this.startScore, returnScore: this.returnScore, uma: this.uma.slice(), oka: this.oka,
+        leftoverSticksTo: sticksTo,
+        note: 'points = (score - returnScore)/1000 + uma[rank] (+ oka for 1st). Leftover riichi sticks go to 1st.' }
+    });
+    this._prompt(0, { kind: 'continue' });
+  };
+
+  Sanma.Game = Game;
+  if (typeof module !== 'undefined' && module.exports) module.exports = Game;
+})();
+
+
+/* ===== src/ai.js ===== */
+/* SANMA ARCADE - ai.js
+ * Simple but decent deterministic AI. Uses ONLY the view (getView(i)) and the prompt.
+ * Sanma.AI.decide(view, prompt) -> choice
+ */
+(function () {
+  'use strict';
+
+  var Sanma = (typeof window !== 'undefined' ? (window.Sanma = window.Sanma || {}) : (global.Sanma = global.Sanma || {}));
+  const Engine = Sanma.Engine || (typeof require !== 'undefined' && require('./engine.js'));
+
+  const NORTH = 30;
+
+  function isYaochu(k) { return k >= 27 || k % 9 === 0 || k % 9 === 8; }
+  function zeros() { var a = new Array(34); for (var i = 0; i < 34; i++) a[i] = 0; return a; }
+
+  function me(view) { return view.players[view.viewer]; }
+  function closedTiles(view) {
+    var p = me(view);
+    return p.drawnTile && typeof p.drawnTile.kind === 'number' ? p.hand.concat([p.drawnTile]) : p.hand.slice();
+  }
+  function countsOf(tiles) { var c = zeros(); tiles.forEach(function (t) { c[t.kind]++; }); return c; }
+
+  // Every tile the viewer can see: own closed tiles, all rivers (not taken), all melds, kita, dora indicators.
+  function visibleCounts(view) {
+    var c = countsOf(closedTiles(view));
+    view.players.forEach(function (p) {
+      p.discards.forEach(function (d) { if (!d.taken) c[d.tile.kind]++; });
+      p.melds.forEach(function (m) { m.tiles.forEach(function (t) { c[t.kind]++; }); });
+      p.kita.forEach(function (t) { c[t.kind]++; });
+    });
+    view.doraIndicators.forEach(function (t) { c[t.kind]++; });
+    for (var i = 0; i < 34; i++) if (c[i] > 4) c[i] = 4;
+    return c;
+  }
+
+  function doraKinds(view) {
+    var d = {};
+    view.doraIndicators.forEach(function (t) { d[Engine.doraOf(t.kind)] = true; });
+    return d;
+  }
+
+  function isYakuhai(view, k) {
+    return k >= 31 || k === view.roundWind || k === me(view).seatWind;
+  }
+
+  // Lower = throw earlier (used only as a tie-break after shanten / ukeire).
+  function keepValue(view, k, counts, dora) {
+    var v;
+    if (k >= 27) v = isYakuhai(view, k) ? (counts[k] >= 2 ? 6 : 1) : 0;
+    else {
+      var n = k % 9;
+      v = (n === 0 || n === 8) ? 2 : (n === 1 || n === 7) ? 3 : 4;
+    }
+    if (dora[k]) v += 3;
+    return v;
+  }
+
+  function riichiOpponents(view) {
+    var out = [];
+    view.players.forEach(function (p, i) { if (i !== view.viewer && p.riichi) out.push(i); });
+    return out;
+  }
+
+  // Danger of discarding kind k against riichi player o (0 = genbutsu).
+  function danger(view, k, o, vis) {
+    var op = view.players[o];
+    var riichiOrder = Infinity;
+    op.discards.forEach(function (d) { if (d.riichi && d.order < riichiOrder) riichiOrder = d.order; });
+    var i, safe = false;
+    for (i = 0; i < op.discards.length && !safe; i++) if (op.discards[i].tile.kind === k) safe = true;
+    if (!safe) {
+      view.players.forEach(function (p, j) {
+        if (j === o) return;
+        p.discards.forEach(function (d) { if (d.order > riichiOrder && d.tile.kind === k) safe = true; });
+      });
+    }
+    if (safe) return 0;
+    if (k >= 27) return vis[k] >= 3 ? 1 : vis[k] === 2 ? 3 : 6;
+    var s = k - (k % 9), n = k % 9;
+    if (s === 0) return 4; // 1m / 9m: only tanki / shanpon waits exist in sanma
+    var disc = {};
+    op.discards.forEach(function (d) { disc[d.tile.kind] = true; });
+    var lowSuji = n - 3 >= 0 ? disc[s + n - 3] : true;
+    var highSuji = n + 3 <= 8 ? disc[s + n + 3] : true;
+    if (lowSuji && highSuji) return (n === 0 || n === 8) ? 3 : 4;
+    return (n === 0 || n === 8) ? 7 : 8;
+  }
+
+  function pickTileId(view, prompt, kind) {
+    var p = me(view);
+    var ids = prompt.discardable;
+    var cands = closedTiles(view).filter(function (t) { return t.kind === kind && ids.indexOf(t.id) >= 0; });
+    if (!cands.length) return ids[0];
+    if (p.drawnTile && p.drawnTile.kind === kind && !p.drawnTile.red) return p.drawnTile.id;
+    var nonRed = cands.filter(function (t) { return !t.red; });
+    return (nonRed.length ? nonRed : cands)[0].id;
+  }
+
+  function rankedDiscards(view, prompt, counts, meldCount, vis) {
+    var allowed = {};
+    closedTiles(view).forEach(function (t) { if (prompt.discardable.indexOf(t.id) >= 0) allowed[t.kind] = true; });
+    var dora = doraKinds(view);
+    var opts = Engine.discardOptions(counts.slice(), meldCount, vis).filter(function (o) { return allowed[o.kind]; });
+    opts.forEach(function (o) { o.keep = keepValue(view, o.kind, counts, dora); });
+    opts.sort(function (a, b) {
+      return (a.shanten - b.shanten) || (b.count - a.count) || (a.keep - b.keep) || (a.kind - b.kind);
+    });
+    return opts;
+  }
+
+  function decideTurn(view, prompt) {
+    var p = me(view);
+    if (prompt.canTsumo) return { action: 'tsumo' };
+    var closed = closedTiles(view);
+    var counts = countsOf(closed);
+    var m = p.melds.length;
+
+    if (prompt.canKyuushu) {
+      var distinct = 0;
+      for (var k = 0; k < 34; k++) if (counts[k] && isYaochu(k)) distinct++;
+      if (distinct < 11) return { action: 'kyuushu' };
+    }
+    if (prompt.canKita) return { action: 'kita' };
+
+    if (p.riichi) {
+      var ak = prompt.kans.filter(function (x) { return x.type === 'ankan'; })[0];
+      if (ak) return { action: 'kan', kind: ak.kind, type: 'ankan' };
+      return { action: 'discard', tileId: prompt.discardable[0] };
+    }
+
+    var vis = visibleCounts(view);
+    var opts = rankedDiscards(view, prompt, counts, m, vis);
+    var best = opts[0];
+    var threats = riichiOpponents(view);
+
+    // kans
+    for (var i = 0; i < prompt.kans.length; i++) {
+      var kn = prompt.kans[i];
+      if (kn.type === 'ankan') {
+        var c2 = counts.slice(); c2[kn.kind] = 0;
+        // 3n+1 tiles after the kan (before rinshan): compare with current best shanten
+        if (Engine.shanten(c2, m + 1) <= best.shanten) return { action: 'kan', kind: kn.kind, type: 'ankan' };
+      } else if (kn.type === 'kakan' && !threats.length) {
+        var c3 = counts.slice(); c3[kn.kind]--;
+        if (Engine.shanten(c3, m) <= best.shanten) return { action: 'kan', kind: kn.kind, type: 'kakan' };
+      }
+    }
+
+    // riichi: pick the tenpai discard with the most acceptance
+    if (prompt.canRiichi) {
+      var rk = {};
+      closed.forEach(function (t) { if (prompt.riichiDiscards.indexOf(t.id) >= 0) rk[t.kind] = true; });
+      var rOpts = opts.filter(function (o) { return rk[o.kind] && o.shanten === 0; });
+      if (rOpts.length) {
+        var kindR = rOpts[0].kind;
+        var rid = closed.filter(function (t) { return t.kind === kindR && prompt.riichiDiscards.indexOf(t.id) >= 0; });
+        var pick = rid.filter(function (t) { return !t.red; })[0] || rid[0];
+        if (p.drawnTile && p.drawnTile.kind === kindR && !p.drawnTile.red) pick = p.drawnTile;
+        return { action: 'discard', tileId: pick.id, riichi: true };
+      }
+    }
+
+    // defense
+    if (threats.length && best && (best.shanten >= 2 || (best.shanten === 1 && best.count < 8))) {
+      var scored = opts.map(function (o, idx) {
+        var dg = 0;
+        threats.forEach(function (t) { dg = Math.max(dg, danger(view, o.kind, t, vis)); });
+        return { kind: o.kind, danger: dg, idx: idx };
+      });
+      scored.sort(function (a, b) { return (a.danger - b.danger) || (a.idx - b.idx); });
+      if (scored[0].danger <= 5) return { action: 'discard', tileId: pickTileId(view, prompt, scored[0].kind) };
+    }
+
+    if (!best) return { action: 'discard', tileId: prompt.discardable[prompt.discardable.length - 1] };
+    return { action: 'discard', tileId: pickTileId(view, prompt, best.kind) };
+  }
+
+  // Would the hand still have a realistic yaku after calling pon on `kind`?
+  function ponKeepsYaku(view, kind, counts) {
+    var p = me(view);
+    if (isYakuhai(view, kind)) return true;
+    var melds = p.melds;
+    var meldKinds = [];
+    melds.forEach(function (md) { meldKinds.push(md.tiles[0].kind); });
+    if (meldKinds.some(function (k) { return isYakuhai(view, k); })) return true;
+    for (var k = 27; k < 34; k++) if (counts[k] >= 3 && isYakuhai(view, k)) return true;
+    var after = counts.slice(); after[kind] -= 2;
+    // tanyao: all melds and the called tile are simples, at most one yaochu left in hand
+    if (!isYaochu(kind) && meldKinds.every(function (k) { return !isYaochu(k); })) {
+      var y = 0; for (k = 0; k < 34; k++) if (isYaochu(k)) y += after[k];
+      if (y <= 1) return true;
+    }
+    // honitsu: one number suit + honors, at most 2 off-suit tiles
+    var suitCnt = { 0: 0, 9: 0, 18: 0 };
+    var all = after.slice();
+    all[kind] += 3;
+    melds.forEach(function (md) { md.tiles.forEach(function (t) { all[t.kind]++; }); });
+    for (k = 0; k < 27; k++) suitCnt[k - (k % 9)] += all[k];
+    var bestSuit = 9;
+    if (suitCnt[18] > suitCnt[bestSuit]) bestSuit = 18;
+    if (suitCnt[0] > suitCnt[bestSuit]) bestSuit = 0;
+    var off = 0;
+    for (k = 0; k < 27; k++) if (k - (k % 9) !== bestSuit) off += all[k];
+    var meldOff = meldKinds.concat([kind]).some(function (mk) { return mk < 27 && mk - (mk % 9) !== bestSuit; });
+    if (!meldOff && off <= 2) return true;
+    return false;
+  }
+
+  function decideCall(view, prompt) {
+    if (prompt.canRon) return { action: 'ron' };
+    var p = me(view);
+    var counts = countsOf(p.hand);
+    var m = p.melds.length;
+    var kind = prompt.tile.kind;
+    var threats = riichiOpponents(view);
+    var cur = Engine.shanten(counts, m);
+
+    if (prompt.canKan && !threats.length) {
+      var hasOpen = p.melds.some(function (md) { return md.type !== 'ankan'; });
+      if (hasOpen) {
+        var c2 = counts.slice(); c2[kind] -= 3;
+        if (Engine.shanten(c2, m + 1) <= cur) return { action: 'kan' };
+      }
+    }
+    if (prompt.canPon) {
+      if (threats.length && cur >= 2) return { action: 'pass' };
+      var after = counts.slice(); after[kind] -= 2;
+      var bestAfter = 99;
+      for (var k = 0; k < 34; k++) {
+        if (!after[k] || k === kind) continue;
+        after[k]--;
+        var s = Engine.shanten(after, m + 1);
+        after[k]++;
+        if (s < bestAfter) bestAfter = s;
+      }
+      if (bestAfter < cur && ponKeepsYaku(view, kind, counts)) {
+        return { action: 'pon', tileIds: prompt.ponTileIds[0] };
+      }
+    }
+    return { action: 'pass' };
+  }
+
+  function decide(view, prompt) {
+    if (!prompt) return null;
+    if (prompt.kind === 'continue') return { action: 'next' };
+    if (prompt.kind === 'call') return decideCall(view, prompt);
+    if (prompt.kind === 'turn') return decideTurn(view, prompt);
+    return null;
+  }
+
+  var AI = { decide: decide, _visibleCounts: visibleCounts, _danger: danger };
+  Sanma.AI = AI;
+  if (typeof module !== 'undefined' && module.exports) module.exports = AI;
+})();
+
+
+/* ===== src/ui.js ===== */
+/* 三麻アーケード — UI / controller (Sanma.UI)
+ * Renders the view/prompt/event contract from SPEC §4 and routes prompts
+ * (AI players -> Sanma.AI.decide, human -> clicks/buttons). No mahjong rules here.
+ */
+(function () {
+  'use strict';
+  var root = (typeof window !== 'undefined') ? window : globalThis;
+  var Sanma = root.Sanma = root.Sanma || {};
+  var hasDOM = typeof document !== 'undefined';
+
+  // =====================================================================
+  // Tile helpers (encoding from SPEC §2)
+  // =====================================================================
+  var NUM_JA = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  var HONOR_JA = ['東', '南', '西', '北', '白', '發', '中'];
+  var SUIT_JA = ['萬', '筒', '索'];
+  var WIND_JA = { 27: '東', 28: '南', 29: '西', 30: '北' };
+
+  function kindOfId(id) { return Math.floor(id / 4); }
+  function isRedId(id) { return id === 52 || id === 88; }
+  function mkTile(id) { return { id: id, kind: kindOfId(id), red: isRedId(id) }; }
+  function kindTile(kind) { return { id: kind * 4 + 1, kind: kind, red: false }; }
+  function eng() { return (S && S.deps && S.deps.Engine) || Sanma.Engine || null; }
+
+  function kindNameJa(kind) {
+    var E = eng();
+    if (E && typeof E.tileNameJa === 'function') { try { var n = E.tileNameJa(kind); if (n) return n; } catch (e) { /* fallthrough */ } }
+    if (kind >= 27) return HONOR_JA[kind - 27] || '?';
+    return NUM_JA[kind % 9] + SUIT_JA[Math.floor(kind / 9)];
+  }
+  function kindShort(kind) {
+    if (kind >= 27) return HONOR_JA[kind - 27];
+    return (kind % 9 + 1) + 'mps'.charAt(Math.floor(kind / 9));
+  }
+  function tileLabel(t) {
+    if (!t || t.hidden || t.kind == null) return '伏せ牌';
+    return (t.red ? '赤' : '') + kindNameJa(t.kind);
+  }
+  function fmt(n) { n = Math.round(n || 0); return (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('en-US'); }
+  function signed(n) { n = Math.round(n || 0); return (n > 0 ? '+' : n < 0 ? '−' : '±') + Math.abs(n).toLocaleString('en-US'); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  // =====================================================================
+  // SVG tile art (viewBox 60x80, face is y 1..74, green thickness below)
+  // =====================================================================
+  var C_RED = '#c81f28', C_GREEN = '#127536', C_BLUE = '#1b4b9c', C_INK = '#151515', IVORY = '#fffbef';
+  var SERIF = "'Noto Serif CJK JP','Noto Serif JP','Hiragino Mincho ProN','Yu Mincho','YuMincho','MS Mincho',serif";
+  var svgCache = {};
+  var defsInjected = false;
+
+  function f1(n) { return Math.round(n * 10) / 10; }
+
+  function injectDefs() {
+    if (defsInjected || !hasDOM || !document.body) return;
+    defsInjected = true;
+    var d = document.createElement('div');
+    d.className = 'svg-defs';
+    d.setAttribute('aria-hidden', 'true');
+    d.innerHTML = '<svg width="0" height="0" focusable="false"><defs>' +
+      '<linearGradient id="smFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffdf6"/><stop offset=".7" stop-color="#f6efdb"/><stop offset="1" stop-color="#e9dfc2"/></linearGradient>' +
+      '<linearGradient id="smBack" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2fa872"/><stop offset=".55" stop-color="#17744c"/><stop offset="1" stop-color="#0d5234"/></linearGradient>' +
+      '<radialGradient id="smGloss" cx=".3" cy=".2" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+      '</defs></svg>';
+    document.body.appendChild(d);
+  }
+
+  function coin(cx, cy, r, c) {
+    return '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(r) + '" fill="' + c + '"/>' +
+      '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(r * 0.8) + '" fill="' + IVORY + '"/>' +
+      '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(r * 0.62) + '" fill="' + c + '"/>' +
+      '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(r * 0.34) + '" fill="' + IVORY + '"/>' +
+      '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(r * 0.16) + '" fill="' + c + '"/>';
+  }
+
+  function pinGlyph(n, red) {
+    var B = C_BLUE, G = C_GREEN, R = C_RED, s = '';
+    var pts;
+    if (n === 1) {
+      s += '<circle cx="30" cy="37.5" r="23" fill="' + G + '"/><circle cx="30" cy="37.5" r="20.5" fill="' + IVORY + '"/>' +
+        '<circle cx="30" cy="37.5" r="18.5" fill="' + (red ? R : B) + '"/><circle cx="30" cy="37.5" r="15.8" fill="' + IVORY + '"/>';
+      for (var i = 0; i < 12; i++) {
+        var a = i * Math.PI / 6;
+        s += '<circle cx="' + f1(30 + Math.cos(a) * 11.4) + '" cy="' + f1(37.5 + Math.sin(a) * 11.4) + '" r="2.3" fill="' + (i % 2 ? G : R) + '"/>';
+      }
+      s += '<circle cx="30" cy="37.5" r="6.5" fill="' + R + '"/><circle cx="30" cy="37.5" r="3.6" fill="' + IVORY + '"/><circle cx="30" cy="37.5" r="1.7" fill="' + G + '"/>';
+      return s;
+    }
+    switch (n) {
+      case 2: pts = [[30, 20, 12, G], [30, 55, 12, B]]; break;
+      case 3: pts = [[15, 15, 9.5, B], [30, 37.5, 9.5, R], [45, 60, 9.5, G]]; break;
+      case 4: pts = [[17, 20, 11, B], [43, 20, 11, G], [17, 55, 11, G], [43, 55, 11, B]]; break;
+      case 5: pts = [[16, 16, 9.5, B], [44, 16, 9.5, G], [30, 37.5, 9.5, R], [16, 59, 9.5, G], [44, 59, 9.5, B]]; break;
+      case 6: pts = [[18, 14, 8.6, G], [42, 14, 8.6, G], [18, 38, 8.6, R], [42, 38, 8.6, R], [18, 60, 8.6, R], [42, 60, 8.6, R]]; break;
+      case 7: pts = [[14, 11, 7.2, G], [30, 18, 7.2, G], [46, 25, 7.2, G], [18, 44, 8, R], [42, 44, 8, R], [18, 62, 8, R], [42, 62, 8, R]]; break;
+      case 8: pts = [[18, 11, 7.8, B], [42, 11, 7.8, B], [18, 29, 7.8, B], [42, 29, 7.8, B], [18, 47, 7.8, B], [42, 47, 7.8, B], [18, 65, 7.8, B], [42, 65, 7.8, B]]; break;
+      default: pts = [[14, 15, 8.2, B], [30, 15, 8.2, B], [46, 15, 8.2, B], [14, 37.5, 8.2, R], [30, 37.5, 8.2, R], [46, 37.5, 8.2, R], [14, 60, 8.2, G], [30, 60, 8.2, G], [46, 60, 8.2, G]];
+    }
+    for (var k = 0; k < pts.length; k++) s += coin(pts[k][0], pts[k][1], pts[k][2], red ? R : pts[k][3]);
+    return s;
+  }
+
+  function stick(x, y, h, c, rot) {
+    var w = 6.6;
+    var s = '<g' + (rot ? ' transform="rotate(' + rot + ' ' + f1(x) + ' ' + f1(y + h / 2) + ')"' : '') + '>';
+    s += '<rect x="' + f1(x - w / 2) + '" y="' + f1(y) + '" width="' + w + '" height="' + f1(h) + '" rx="3.2" fill="' + c + '"/>';
+    s += '<rect x="' + f1(x - w / 2 - 0.7) + '" y="' + f1(y) + '" width="' + f1(w + 1.4) + '" height="2.4" rx="1.2" fill="' + c + '"/>';
+    s += '<rect x="' + f1(x - w / 2 - 0.7) + '" y="' + f1(y + h - 2.4) + '" width="' + f1(w + 1.4) + '" height="2.4" rx="1.2" fill="' + c + '"/>';
+    s += '<line x1="' + f1(x - w / 2) + '" x2="' + f1(x + w / 2) + '" y1="' + f1(y + h / 2) + '" y2="' + f1(y + h / 2) + '" stroke="' + IVORY + '" stroke-width="1.3"/>';
+    s += '<rect x="' + f1(x - 1.6) + '" y="' + f1(y + 3) + '" width="1.3" height="' + f1(h - 6) + '" rx=".6" fill="#fff" opacity=".5"/>';
+    return s + '</g>';
+  }
+
+  function souGlyph(n, red) {
+    var G = C_GREEN, R = C_RED, B = C_BLUE, s = '';
+    function c(col) { return red ? R : col; }
+    switch (n) {
+      case 1:
+        // a stylised bamboo shoot with leaves
+        s += '<path d="M30 70 C 29 52 29 30 30 12" stroke="' + G + '" stroke-width="7" stroke-linecap="round" fill="none"/>';
+        s += '<path d="M30 70 C 29 52 29 30 30 12" stroke="#fff" stroke-opacity=".45" stroke-width="1.2" fill="none" transform="translate(-1.6 0)"/>';
+        [24, 40, 56].forEach(function (yy) { s += '<line x1="25.5" x2="34.5" y1="' + yy + '" y2="' + yy + '" stroke="' + IVORY + '" stroke-width="1.6"/>'; });
+        s += '<path d="M31 30 C 40 20 48 20 53 14 C 50 26 42 30 31 31 Z" fill="' + G + '"/>';
+        s += '<path d="M29 44 C 20 36 12 37 7 31 C 10 43 18 46 29 45 Z" fill="' + G + '"/>';
+        s += '<circle cx="30" cy="10" r="5.2" fill="' + R + '"/><circle cx="30" cy="10" r="2.2" fill="' + IVORY + '"/>';
+        s += '<path d="M31 58 C 38 54 44 55 48 51 C 46 59 40 61 31 60 Z" fill="' + B + '"/>';
+        return s;
+      case 2: return stick(30, 6, 29, c(G)) + stick(30, 40, 29, c(B));
+      case 3: return stick(30, 6, 29, c(G)) + stick(18, 40, 29, c(B)) + stick(42, 40, 29, c(B));
+      case 4: return stick(18, 6, 29, c(G)) + stick(42, 6, 29, c(B)) + stick(18, 40, 29, c(B)) + stick(42, 40, 29, c(G));
+      case 5: return stick(15, 6, 29, c(G)) + stick(45, 6, 29, c(B)) + stick(30, 23, 29, R) + stick(15, 40, 29, c(B)) + stick(45, 40, 29, c(G));
+      case 6: return stick(15, 6, 29, c(G)) + stick(30, 6, 29, c(G)) + stick(45, 6, 29, c(G)) + stick(15, 40, 29, c(B)) + stick(30, 40, 29, c(B)) + stick(45, 40, 29, c(B));
+      case 7:
+        return stick(30, 4, 20, R) + stick(15, 27, 20, c(G)) + stick(30, 27, 20, c(G)) + stick(45, 27, 20, c(G)) +
+          stick(15, 50, 20, c(B)) + stick(30, 50, 20, c(B)) + stick(45, 50, 20, c(B));
+      case 8:
+        return stick(11, 6, 29, c(G)) + stick(24, 6, 29, c(G), 22) + stick(36, 6, 29, c(G), -22) + stick(49, 6, 29, c(G)) +
+          stick(11, 40, 29, c(B)) + stick(24, 40, 29, c(B), -22) + stick(36, 40, 29, c(B), 22) + stick(49, 40, 29, c(B));
+      default:
+        return stick(15, 4, 20, c(G)) + stick(30, 4, 20, R) + stick(45, 4, 20, c(G)) +
+          stick(15, 27, 20, c(B)) + stick(30, 27, 20, R) + stick(45, 27, 20, c(B)) +
+          stick(15, 50, 20, c(G)) + stick(30, 50, 20, R) + stick(45, 50, 20, c(G));
+    }
+  }
+
+  function txt(x, y, size, color, str, extra) {
+    return '<text x="' + x + '" y="' + y + '" font-size="' + size + '" fill="' + color + '" text-anchor="middle" font-weight="900" font-family="' + SERIF + '"' + (extra || '') + '>' + str + '</text>';
+  }
+
+  function glyph(kind, red) {
+    if (kind < 9) {
+      var n = kind + 1;
+      return txt(30, 33, 29, red ? C_RED : C_INK, NUM_JA[n - 1]) + txt(30, 67, 29, C_RED, '萬');
+    }
+    if (kind < 18) return pinGlyph(kind - 8, red);
+    if (kind < 27) return souGlyph(kind - 17, red);
+    var h = kind - 27;
+    if (h <= 3) return txt(30, 53, 42, C_INK, HONOR_JA[h]);
+    if (h === 4) return '<rect x="11" y="11" width="38" height="53" rx="3" fill="none" stroke="#2c5aa8" stroke-width="3"/><rect x="15.5" y="15.5" width="29" height="44" rx="1.5" fill="none" stroke="#2c5aa8" stroke-width="1"/>';
+    if (h === 5) return txt(30, 53, 42, C_GREEN, '發');
+    return txt(30, 53, 44, C_RED, '中');
+  }
+
+  function tileSVG(tile, opts) {
+    opts = opts || {};
+    var back = !!opts.back || !tile || tile.hidden || tile.kind == null;
+    var key = back ? 'B' : (tile.kind + (tile.red ? 'r' : ''));
+    injectDefs();
+    if (svgCache[key]) return svgCache[key];
+    var s = '<svg class="tsvg" viewBox="0 0 60 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">';
+    if (back) {
+      s += '<rect x="1" y="1" width="58" height="78" rx="7" fill="#e7dec3"/>' +
+        '<rect x="1" y="1" width="58" height="73" rx="7" fill="url(#smBack) #17744c" stroke="#083824" stroke-width=".8"/>' +
+        '<rect x="6.5" y="6.5" width="47" height="62" rx="4" fill="none" stroke="#9ce0bd" stroke-opacity=".35" stroke-width="1"/>' +
+        '<path d="M30 16 L44 37.5 L30 59 L16 37.5 Z" fill="none" stroke="#9ce0bd" stroke-opacity=".3" stroke-width="1.2"/>' +
+        '<circle cx="30" cy="37.5" r="4" fill="#9ce0bd" fill-opacity=".25"/>' +
+        '<rect x="1" y="1" width="58" height="73" rx="7" fill="url(#smGloss)" opacity=".5"/>';
+    } else {
+      s += '<rect x="1" y="1" width="58" height="78" rx="7" fill="#167048"/>' +
+        '<rect x="1" y="1" width="58" height="73" rx="7" fill="url(#smFace) #f7f0dd" stroke="#b3a682" stroke-width=".8"/>' +
+        '<rect x="3" y="2.6" width="54" height="3" rx="1.5" fill="#fff" opacity=".7"/>' +
+        glyph(tile.kind, !!tile.red);
+      if (tile.red) s += '<circle cx="53" cy="7.5" r="2.2" fill="' + C_RED + '"/>';
+    }
+    s += '</svg>';
+    svgCache[key] = s;
+    return s;
+  }
+
+  // Tile element HTML. o: {cls, rot:'l'|'r', back, btn, attrs}
+  function tileHTML(tile, o) {
+    o = o || {};
+    var cls = 'tl' + (o.rot ? ' rot' + (o.rot === 'r' ? ' rot-r' : '') : '') + (o.cls ? ' ' + o.cls : '');
+    var inner = '<span class="face">' + tileSVG(tile, { back: o.back }) + '</span>';
+    var label = o.back ? '伏せ牌' : tileLabel(tile);
+    if (o.btn) return '<button type="button" class="' + cls + '" aria-label="' + esc(label) + '"' + (o.attrs || '') + '>' + inner + '</button>';
+    return '<span class="' + cls + '" role="img" aria-label="' + esc(label) + '"' + (o.attrs || '') + '>' + inner + '</span>';
+  }
+
+  // =====================================================================
+  // Settings / stats (localStorage, always try/catch)
+  // =====================================================================
+  var DEFAULTS = { timer: true, seconds: 10, autoWin: false, noCalls: false, sound: true, voice: false, hint: true, bigTiles: false };
+  function loadJSON(key, def) {
+    try { var s = root.localStorage && root.localStorage.getItem(key); if (s) { var o = JSON.parse(s); if (o && typeof o === 'object') return o; } } catch (e) { /* ignore */ }
+    return def;
+  }
+  function saveJSON(key, v) { try { root.localStorage && root.localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* ignore */ } }
+  function loadSettings() { var o = loadJSON('sanma.settings', {}); var r = {}; for (var k in DEFAULTS) r[k] = (k in o) ? o[k] : DEFAULTS[k]; return r; }
+  function loadStats() {
+    var o = loadJSON('sanma.stats', {});
+    return { games: +o.games || 0, wins: +o.wins || 0, hands: +o.hands || 0, ranks: Array.isArray(o.ranks) ? [0, 1, 2].map(function (i) { return +o.ranks[i] || 0; }) : [0, 0, 0] };
+  }
+
+  // =====================================================================
+  // Sound (WebAudio synth, lazily created on first gesture) + voice
+  // =====================================================================
+  var Snd = {
+    ctx: null, noiseBuf: null,
+    ensure: function () {
+      try {
+        if (!this.ctx) { var AC = root.AudioContext || root.webkitAudioContext; if (!AC) return; this.ctx = new AC(); }
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      } catch (e) { this.ctx = null; }
+    },
+    ok: function () { return S && S.settings.sound && this.ctx && this.ctx.state === 'running'; },
+    noise: function () {
+      if (this.noiseBuf) return this.noiseBuf;
+      var len = Math.floor(this.ctx.sampleRate * 0.3), b = this.ctx.createBuffer(1, len, this.ctx.sampleRate), d = b.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      return (this.noiseBuf = b);
+    },
+    tone: function (freq, t0, dur, type, vol, freqEnd) {
+      var c = this.ctx, o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+      if (freqEnd) o.frequency.exponentialRampToValueAtTime(freqEnd, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol || 0.2, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+    },
+    burst: function (t0, dur, freq, q, vol, type) {
+      var c = this.ctx, src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = this.noise(); f.type = type || 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+      g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(f); f.connect(g); g.connect(c.destination); src.start(t0); src.stop(t0 + dur + 0.02);
+    },
+    play: function (name) {
+      if (!this.ok()) return;
+      try {
+        var t = this.ctx.currentTime + 0.005;
+        switch (name) {
+          case 'clack': this.burst(t, 0.07, 2600, 1.4, 0.55); this.tone(1900, t, 0.04, 'triangle', 0.12); break;
+          case 'soft': this.burst(t, 0.05, 3200, 2, 0.18); break;
+          case 'thud': this.tone(150, t, 0.28, 'sine', 0.5, 55); this.burst(t, 0.12, 400, 0.8, 0.35, 'lowpass'); break;
+          case 'chime': this.tone(988, t, 0.7, 'sine', 0.22); this.tone(1319, t + 0.12, 0.9, 'sine', 0.2); this.tone(1976, t + 0.12, 0.5, 'sine', 0.05); break;
+          case 'dora': this.tone(1568, t, 0.35, 'sine', 0.12); this.tone(2093, t + 0.08, 0.4, 'sine', 0.1); break;
+          case 'tick': this.tone(1200, t, 0.05, 'square', 0.05); break;
+          case 'fanfare':
+            [523, 659, 784, 1047].forEach(function (f, i) { Snd.tone(f, t + i * 0.1, 0.22, 'square', 0.07); Snd.tone(f / 2, t + i * 0.1, 0.22, 'triangle', 0.12); });
+            [1047, 1319, 1568].forEach(function (f) { Snd.tone(f, t + 0.42, 1.2, 'triangle', 0.12); Snd.tone(f / 2, t + 0.42, 1.2, 'square', 0.03); });
+            break;
+          case 'draw': this.tone(392, t, 0.5, 'triangle', 0.12); this.tone(330, t + 0.25, 0.8, 'triangle', 0.12); break;
+          case 'select': this.tone(1500, t, 0.04, 'sine', 0.06); break;
+          case 'start': [392, 523, 659, 784].forEach(function (f, i) { Snd.tone(f, t + i * 0.07, 0.3, 'triangle', 0.1); }); break;
+        }
+      } catch (e) { /* audio is best-effort */ }
+    },
+    say: function (text) {
+      if (!S || !S.settings.voice || !root.speechSynthesis || !root.SpeechSynthesisUtterance) return;
+      try {
+        root.speechSynthesis.cancel();
+        var u = new root.SpeechSynthesisUtterance(text);
+        u.lang = 'ja-JP'; u.rate = 1.15; u.pitch = 1.05; u.volume = 0.9;
+        var vs = root.speechSynthesis.getVoices ? root.speechSynthesis.getVoices() : [];
+        for (var i = 0; i < vs.length; i++) if (/^ja/i.test(vs[i].lang)) { u.voice = vs[i]; break; }
+        root.speechSynthesis.speak(u);
+      } catch (e) { /* ignore */ }
+    }
+  };
+
+  // =====================================================================
+  // Controller state
+  // =====================================================================
+  var S = null;
+  var NAMES = ['あなた', '雀士A', '雀士B'];
+  // screen coordinates of each seat's "voice" position (for call flashes)
+  var FX_POS = [[640, 530], [1020, 262], [260, 262]];
+
+  function $(sel, el) { return (el || S.stage).querySelector(sel); }
+  // write innerHTML only when it changed (keeps CSS animations from restarting on every event)
+  function setHTML(el, html) {
+    if (!el) return;
+    if (el._html === html) return;
+    el._html = html;
+    el.innerHTML = html;
+  }
+
+  function mount(rootEl, deps) {
+    if (!hasDOM) throw new Error('Sanma.UI.mount requires a DOM');
+    rootEl = rootEl || document.getElementById('app') || document.body;
+    deps = deps || Sanma;
+    if (S) teardown();
+    S = {
+      rootEl: rootEl, deps: { Game: deps.Game || Sanma.Game, AI: deps.AI || Sanma.AI, Engine: deps.Engine || Sanma.Engine },
+      settings: loadSettings(), stats: loadStats(),
+      game: null, gen: 0, queue: [], pumping: false, view: null,
+      prompt: null, promptView: null, sel: null, riichiMode: false, chooser: null,
+      timer: null, timerTick: null, autoT: null,
+      panel: null, finalResults: null, continuePending: false, wantNext: false,
+      thinking: [false, false, false], demo: false, listeners: [], speed: 1
+    };
+    rootEl.innerHTML = '';
+    rootEl.classList.add('sanma-root');
+    injectDefs();
+    var hint = document.createElement('div');
+    hint.className = 'rotate-hint';
+    hint.textContent = '横画面にするとより大きく遊べます';
+    rootEl.appendChild(hint);
+    var st = document.createElement('div');
+    st.className = 'stage';
+    st.innerHTML = STAGE_HTML;
+    rootEl.appendChild(st);
+    S.stage = st;
+    S.rotateHint = hint;
+    buildDrawer();
+    applySettings();
+    wire();
+    fit();
+    showTitle();
+    return Sanma.UI;
+  }
+
+  var STAGE_HTML =
+    '<div class="felt"></div>' +
+    '<header class="topbar"><div class="logo">三麻アーケード</div><div class="tb-mode">三人打ち 東南戦</div><div class="tb-info" aria-live="polite"></div><div class="spacer"></div>' +
+    '<button type="button" class="tb-btn" data-act="settings" aria-label="設定を開く">⚙ 設定</button></header>' +
+    '<section class="game-scr" aria-label="対局画面">' +
+    '<div class="plate plate1"><span class="pl-wind"></span><span class="pl-name"></span><span class="pl-score"></span><span class="pl-tag" hidden>リーチ</span><span class="pl-think" aria-hidden="true"><i></i><i></i><i></i></span></div>' +
+    '<div class="plate plate2"><span class="pl-wind"></span><span class="pl-name"></span><span class="pl-score"></span><span class="pl-tag" hidden>リーチ</span><span class="pl-think" aria-hidden="true"><i></i><i></i><i></i></span></div>' +
+    '<div class="kita-row k1" aria-label="下家の抜きドラ"></div><div class="kita-row k2" aria-label="上家の抜きドラ"></div>' +
+    '<div class="side-hand h1" aria-label="下家の手牌"></div><div class="side-hand h2" aria-label="上家の手牌"></div>' +
+    '<div class="side-melds m1" aria-label="下家の副露"></div><div class="side-melds m2" aria-label="上家の副露"></div>' +
+    '<div class="river-wrap r0" aria-label="あなたの河"><div class="river"></div></div>' +
+    '<div class="river-wrap r1" aria-label="下家の河"><div class="river"></div></div>' +
+    '<div class="river-wrap r2" aria-label="上家の河"><div class="river"></div></div>' +
+    '<div class="center" aria-label="場の情報">' +
+    '<div class="cp-round"></div><div class="cp-sub"></div>' +
+    '<div class="cp-dora"><span class="lbl">ドラ表示牌</span><div class="tiles"></div></div>' +
+    '<div class="cp-wall">残り<b>--</b></div>' +
+    '<div class="sb sb0"></div><div class="sb sb1"></div><div class="sb sb2"></div>' +
+    '</div>' +
+    '<div class="hand-row" role="group" aria-label="あなたの手牌"><div class="hand"></div><div class="drawn"></div><div class="melds"></div><div class="kita"></div></div>' +
+    '<div class="hint" aria-live="polite"></div>' +
+    '<div class="action-bar" hidden><div class="timer" hidden><span class="t-num">10</span><div class="t-track"><div class="t-fill"></div></div></div>' +
+    '<div class="btns"></div><div class="chooser" hidden></div></div>' +
+    '</section>' +
+    '<div class="fx" aria-hidden="true"></div>' +
+    '<section class="title-scr" hidden></section>' +
+    '<div class="overlay" hidden></div>' +
+    '<aside class="drawer" aria-label="設定" aria-hidden="true"></aside>' +
+    '<div class="toast" role="status" aria-live="polite"></div>';
+
+  function teardown() {
+    if (!S) return;
+    S.gen++;
+    clearTimers();
+    S.listeners.forEach(function (l) { l[0].removeEventListener(l[1], l[2], l[3]); });
+    S = null;
+  }
+
+  function on(target, type, fn, opts) { target.addEventListener(type, fn, opts || false); S.listeners.push([target, type, fn, opts || false]); }
+
+  // Safe-area insets (iPhone notch / Dynamic Island / home indicator), read from a hidden probe
+  // whose padding is env(safe-area-inset-*) via the --sa-* custom properties on .sanma-root.
+  function safeInsets() {
+    var p = S.safeProbe;
+    if (!p) {
+      p = S.safeProbe = document.createElement('div');
+      p.className = 'safe-probe';
+      p.setAttribute('aria-hidden', 'true');
+      S.rootEl.appendChild(p);
+    }
+    var cs = root.getComputedStyle ? root.getComputedStyle(p) : null;
+    var px = function (v) { var n = parseFloat(v); return isFinite(n) && n > 0 ? n : 0; };
+    return cs ? { t: px(cs.paddingTop), r: px(cs.paddingRight), b: px(cs.paddingBottom), l: px(cs.paddingLeft) } : { t: 0, r: 0, b: 0, l: 0 };
+  }
+
+  function fit() {
+    if (!S) return;
+    var w = S.rootEl.clientWidth || root.innerWidth, h = S.rootEl.clientHeight || root.innerHeight;
+    var sa = safeInsets();
+    var aw = Math.max(1, w - sa.l - sa.r), ah = Math.max(1, h - sa.t - sa.b);
+    var s = Math.min(aw / 1280, ah / 720);
+    S.stage.style.transform = 'translate(' + (sa.l + (aw - 1280 * s) / 2) + 'px,' + (sa.t + (ah - 720 * s) / 2) + 'px) scale(' + s + ')';
+    S.rotateHint.classList.toggle('show', h > w * 1.15);
+    S.rotateHint.style.top = (sa.t + 12) + 'px';
+  }
+
+  // iPhone: block pinch / double-tap zoom and the long-press menu so stray gestures never move the table.
+  function guardGestures() {
+    var stop = function (e) { e.preventDefault(); };
+    on(document, 'gesturestart', stop);
+    on(document, 'gesturechange', stop);
+    on(document, 'gestureend', stop);
+    on(document, 'dblclick', stop);
+    on(document, 'contextmenu', stop);
+    on(document, 'touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  }
+
+  function wire() {
+    on(root, 'resize', fit);
+    on(root, 'orientationchange', function () { fit(); setTimeout(fit, 250); setTimeout(fit, 600); });
+    if (root.visualViewport) on(root.visualViewport, 'resize', fit);
+    guardGestures();
+    var unlock = function () { Snd.ensure(); };
+    on(document, 'pointerdown', unlock);
+    on(document, 'keydown', unlock);
+    on(S.stage, 'click', onStageClick);
+    on(document, 'keydown', onKey);
+  }
+
+  function clearTimers() {
+    if (!S) return;
+    stopTimer();
+    if (S.autoT) { clearTimeout(S.autoT); S.autoT = null; }
+    if (S.nextT) { clearTimeout(S.nextT); S.nextT = null; }
+  }
+
+  function toast(msg, ms) {
+    var t = $('.toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(S.toastT);
+    S.toastT = setTimeout(function () { if (S) t.classList.remove('show'); }, ms || 1800);
+  }
+
+  // =====================================================================
+  // Title screen
+  // =====================================================================
+  function showTitle() {
+    clearTimers();
+    closeOverlay();
+    var st = S.stats;
+    var total = st.ranks[0] + st.ranks[1] + st.ranks[2];
+    var avg = total ? ((st.ranks[0] + 2 * st.ranks[1] + 3 * st.ranks[2]) / total).toFixed(2) : '-.--';
+    var top = total ? Math.round(st.ranks[0] * 100 / total) + '%' : '--%';
+    var fan = [0, 9, 13, 22, 27, 30, 31, 32, 33].map(function (k, i) {
+      var t = k === 13 ? mkTile(52) : k === 22 ? mkTile(88) : kindTile(k);
+      return tileHTML(t, { attrs: ' style="animation-delay:' + (i * 0.06) + 's"' });
+    }).join('');
+    var el = $('.title-scr');
+    el.innerHTML =
+      '<div class="title-fan" aria-hidden="true">' + fan + '</div>' +
+      '<h1 class="title-logo">三麻アーケード</h1>' +
+      '<div class="title-sub">三人麻雀 · 東南戦</div>' +
+      '<div class="title-btns"><button type="button" class="big-btn start" data-act="start">対局開始</button>' +
+      '<button type="button" class="big-btn ghost" data-act="settings">設定</button></div>' +
+      '<div class="title-stats" aria-label="戦績">' +
+      '<div><span>対局数</span><b>' + st.games + '</b></div>' +
+      '<div><span>平均順位</span><b>' + avg + '</b></div>' +
+      '<div><span>トップ率</span><b>' + top + '</b></div>' +
+      '<div><span>和了回数</span><b>' + st.wins + '</b></div></div>' +
+      '<div class="title-press" aria-hidden="true">PRESS START</div>' +
+      '<div class="title-foot">オリジナル作品 · Sanma Arcade</div>';
+    el.hidden = false;
+    $('.game-scr').style.visibility = 'hidden';
+    $('.tb-info').textContent = '';
+    setTimeout(function () { var b = S && $('.title-scr .start'); if (b) try { b.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50);
+  }
+
+  function hideTitle() {
+    $('.title-scr').hidden = true;
+    $('.game-scr').style.visibility = '';
+  }
+
+  // =====================================================================
+  // Settings drawer
+  // =====================================================================
+  var SET_ROWS = [
+    ['timer', '持ち時間', '時間切れで自動打牌・パス'],
+    ['seconds', '打牌の秒数', '鳴きの判断はこの6割'],
+    ['autoWin', '自動和了', 'ロン・ツモを自動で宣言'],
+    ['noCalls', '鳴きなし', 'ポン・カンの確認を自動でパス'],
+    ['sound', 'サウンド', '効果音'],
+    ['voice', '音声', 'リーチ・ポン・ロン等の読み上げ'],
+    ['hint', 'ヒント', 'シャンテン数と待ちを表示'],
+    ['bigTiles', '大きい牌', '牌の見やすさ']
+  ];
+  function buildDrawer() {
+    var h = '<h2><span>設定</span><button type="button" class="x" data-act="close-settings" aria-label="設定を閉じる">✕</button></h2>';
+    SET_ROWS.forEach(function (r) {
+      var id = 'set-' + r[0];
+      if (r[0] === 'seconds') {
+        h += '<div class="set-row"><label class="lbl" for="' + id + '">' + r[1] + '<small>' + r[2] + '</small></label><select id="' + id + '" data-key="seconds">' +
+          [5, 8, 10, 15, 20, 30].map(function (v) { return '<option value="' + v + '">' + v + '秒</option>'; }).join('') + '</select></div>';
+      } else {
+        h += '<div class="set-row"><label class="lbl" for="' + id + '">' + r[1] + '<small>' + r[2] + '</small></label><span class="sw"><input type="checkbox" id="' + id + '" data-key="' + r[0] + '"><span class="ui"></span></span></div>';
+      }
+    });
+    h += '<div class="note">設定はこの端末に保存されます。<br>キー操作: Enter＝打牌/決定、Space・Esc＝パス、←→＝牌の選択</div>';
+    var d = $('.drawer');
+    d.innerHTML = h;
+    on(d, 'change', function (e) {
+      var k = e.target.getAttribute('data-key');
+      if (!k) return;
+      S.settings[k] = k === 'seconds' ? (+e.target.value || 10) : !!e.target.checked;
+      saveJSON('sanma.settings', S.settings);
+      applySettings();
+      if (k === 'timer' && S.prompt) { if (S.settings.timer) startPromptTimer(); else stopTimer(); }
+    });
+  }
+  function syncDrawer() {
+    var d = $('.drawer');
+    Array.prototype.forEach.call(d.querySelectorAll('[data-key]'), function (inp) {
+      var k = inp.getAttribute('data-key');
+      if (k === 'seconds') inp.value = String(S.settings.seconds); else inp.checked = !!S.settings[k];
+    });
+  }
+  function openSettings(open) {
+    var d = $('.drawer');
+    if (open) syncDrawer();
+    d.classList.toggle('open', open);
+    d.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (open) setTimeout(function () { var x = d.querySelector('.x'); if (x) try { x.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30);
+  }
+  function applySettings() {
+    S.stage.classList.toggle('big', !!S.settings.bigTiles);
+    $('.hint').style.display = S.settings.hint ? '' : 'none';
+    if (S.view) renderHint(S.view);
+  }
+
+  // =====================================================================
+  // Rendering
+  // =====================================================================
+  function P(view, i) { return (view && view.players && view.players[i]) || { name: NAMES[i], score: 0, hand: [], discards: [], melds: [], kita: [] }; }
+  function roundName(v) { return (WIND_JA[v.roundWind] || '東') + (v.roundNumber || 1) + '局'; }
+
+  function render(view, anim) {
+    if (!view) return;
+    S.view = view;
+    anim = anim || {};
+    renderCenter(view);
+    for (var p = 0; p < 3; p++) renderRiver(view, p, anim);
+    renderHuman(view, anim);
+    renderSide(view, 1, anim);
+    renderSide(view, 2, anim);
+    renderHint(view);
+    $('.tb-info').textContent = roundName(view) + '  ' + (view.honba || 0) + '本場';
+  }
+
+  function renderCenter(v) {
+    $('.cp-round').textContent = roundName(v);
+    setHTML($('.cp-sub'), '<span>' + (v.honba || 0) + '本場</span><span><i class="stick-mini"></i>供託 ' + (v.riichiSticks || 0) + '</span>');
+    var inds = v.doraIndicators || [];
+    var h = '';
+    for (var i = 0; i < 5; i++) h += inds[i] ? tileHTML(inds[i]) : tileHTML(null, { back: true });
+    setHTML($('.cp-dora .tiles'), h);
+    $('.cp-wall b').textContent = v.wallRemaining != null ? v.wallRemaining : '--';
+    for (var p = 0; p < 3; p++) {
+      var pl = P(v, p), sb = $('.sb' + p);
+      var delta = sb.querySelector('.sb-delta');
+      var sbh = '<div class="sb-wind' + (pl.isDealer ? ' dealer' : '') + '" aria-label="' + (WIND_JA[pl.seatWind] || '') + '家">' + (WIND_JA[pl.seatWind] || '?') + '</div>' +
+        '<div class="sb-name">' + esc(pl.name || NAMES[p]) + '</div>' +
+        '<div class="sb-score" aria-label="' + esc(pl.name || NAMES[p]) + 'の点数">' + fmt(pl.score) + '</div>' +
+        (pl.riichi ? '<div class="sb-stick" title="リーチ" aria-label="リーチ中"></div>' : '');
+      if (sb._html !== sbh) { setHTML(sb, sbh); if (delta) sb.appendChild(delta); }
+      sb.classList.toggle('active', v.phase !== 'roundEnd' && v.phase !== 'gameEnd' && v.turn === p);
+    }
+  }
+
+  function showDeltas(deltas) {
+    if (!deltas) return;
+    for (var p = 0; p < 3; p++) {
+      var sb = $('.sb' + p), old = sb.querySelector('.sb-delta');
+      if (old) old.remove();
+      if (!deltas[p]) continue;
+      var d = document.createElement('div');
+      d.className = 'sb-delta ' + (deltas[p] > 0 ? 'plus' : 'minus');
+      d.textContent = signed(deltas[p]);
+      sb.appendChild(d);
+      (function (dd) { setTimeout(function () { if (dd.parentNode) dd.remove(); }, 3500); })(d);
+    }
+  }
+
+  function renderRiver(v, p, anim) {
+    var ds = P(v, p).discards || [];
+    var last = v.lastDiscard && v.lastDiscard.player === p ? ds.length - 1 : -1;
+    var h = '';
+    for (var r = 0; r * 6 < Math.max(ds.length, 1); r++) {
+      h += '<div class="row">';
+      for (var i = r * 6; i < Math.min(ds.length, r * 6 + 6); i++) {
+        var d = ds[i] || {};
+        var cls = (d.taken ? 'taken' : '') + (i === last && !d.taken ? ' last' : '') + (anim.type === 'discard' && anim.player === p && i === ds.length - 1 ? ' anim-disc' : '');
+        h += tileHTML(d.tile, { rot: d.riichi ? 'l' : null, cls: cls });
+      }
+      h += '</div>';
+    }
+    setHTML($('.r' + p + ' .river'), h);
+  }
+
+  function meldOrder(meld, player) {
+    // returns [{tile, rot, back}] ordered left->right from the owner's point of view
+    var tiles = (meld.tiles || []).slice();
+    var calledId = meld.calledTile ? meld.calledTile.id : null;
+    var out = [];
+    if (meld.type === 'ankan') {
+      return tiles.map(function (t, i) { return { tile: t, back: i === 0 || i === tiles.length - 1 }; });
+    }
+    var called = null, rest = [];
+    tiles.forEach(function (t) { if (called == null && calledId != null && t.id === calledId) called = t; else rest.push(t); });
+    if (!called && meld.calledTile) called = meld.calledTile;
+    var rel = meld.from != null ? (meld.from - player + 3) % 3 : 1;
+    rest.forEach(function (t) { out.push({ tile: t }); });
+    if (called) {
+      var c = { tile: called, rot: true };
+      if (rel === 2) out.unshift(c); else out.push(c);
+    }
+    return out;
+  }
+
+  function meldHTML(meld, player, sideRot) {
+    return meldOrder(meld, player).map(function (m) {
+      var rot = sideRot || (m.rot ? 'l' : null);
+      return tileHTML(m.tile, { rot: rot, back: m.back });
+    }).join('');
+  }
+
+  function enabledSet() {
+    var pr = S.prompt;
+    if (!pr || pr.kind !== 'turn') return null;
+    var ids = S.riichiMode ? (pr.riichiDiscards || []) : (pr.discardable || []);
+    var set = {};
+    ids.forEach(function (id) { set[id] = true; });
+    return set;
+  }
+
+  function renderHuman(v, anim) {
+    var me = P(v, 0);
+    var en = enabledSet();
+    var myTurn = !!en;
+    var h = '';
+    (me.hand || []).forEach(function (t) {
+      if (!t) return;
+      var ok = en ? !!en[t.id] : false;
+      h += tileHTML(t, { btn: true, cls: 'ht' + (S.sel === t.id ? ' sel' : '') + (en && !ok ? ' dim' : ''), attrs: ' data-id="' + t.id + '"' + (ok ? '' : ' disabled') });
+    });
+    setHTML($('.hand-row .hand'), h);
+    var dt = me.drawnTile && me.drawnTile.kind != null ? me.drawnTile : null;
+    var okd = dt && en ? !!en[dt.id] : false;
+    setHTML($('.hand-row .drawn'), dt ? tileHTML(dt, {
+      btn: true, cls: 'ht' + (S.sel === dt.id ? ' sel' : '') + (en && !okd ? ' dim' : '') + (anim.type === 'draw' && anim.player === 0 ? ' anim-draw' : ''),
+      attrs: ' data-id="' + dt.id + '"' + (okd ? '' : ' disabled')
+    }) : '');
+    $('.hand-row .drawn').style.display = dt ? '' : 'none';
+    var melds = me.melds || [];
+    setHTML($('.hand-row .melds'), melds.map(function (m, i) {
+      var a = (anim.type === 'call' || anim.type === 'kan') && anim.player === 0 && i === melds.length - 1 ? ' anim-meld' : '';
+      return '<div class="meld' + a + '" role="img" aria-label="' + meldLabel(m) + '">' + meldHTML(m, 0) + '</div>';
+    }).join(''));
+    $('.hand-row .melds').style.display = melds.length ? '' : 'none';
+    var kita = me.kita || [];
+    setHTML($('.hand-row .kita'), kita.map(function (t, i) { return tileHTML(t, { cls: anim.type === 'kita' && anim.player === 0 && i === kita.length - 1 ? 'anim-meld' : '' }); }).join(''));
+    $('.hand-row .kita').style.display = kita.length ? '' : 'none';
+    $('.hand-row').classList.toggle('myturn', myTurn);
+  }
+
+  function meldLabel(m) {
+    var n = { pon: 'ポン', chi: 'チー', ankan: '暗槓', minkan: '明槓', kakan: '加槓' }[m.type] || '副露';
+    var t = (m.tiles || [])[0];
+    return n + ' ' + (t ? kindNameJa(t.kind) : '');
+  }
+
+  function renderSide(v, p, anim) {
+    var pl = P(v, p);
+    // hand excludes the drawn tile (SPEC §4.3); handCount may include it, so prefer hand.length
+    var n = Array.isArray(pl.hand) ? pl.hand.length : Math.max(0, (pl.handCount || 0) - (pl.drawnTile ? 1 : 0));
+    var h = '';
+    for (var i = 0; i < n; i++) h += '<div class="st"></div>';
+    if (pl.drawnTile) h += '<div class="st drawn' + (anim.type === 'draw' && anim.player === p ? ' anim-draw' : '') + '"></div>';
+    var hand = $('.h' + p);
+    setHTML(hand, h);
+    hand.setAttribute('aria-label', (p === 1 ? '下家' : '上家') + 'の手牌 ' + (n + (pl.drawnTile ? 1 : 0)) + '枚');
+    var melds = pl.melds || [];
+    setHTML($('.m' + p), melds.map(function (m, i) {
+      var a = (anim.type === 'call' || anim.type === 'kan') && anim.player === p && i === melds.length - 1 ? ' anim-meld' : '';
+      return '<div class="meld' + a + '" role="img" aria-label="' + meldLabel(m) + '">' + meldHTML(m, p, p === 1 ? 'l' : 'r') + '</div>';
+    }).join(''));
+    // side melds column sits next to the hand; shift it if the hand is long
+    setHTML($('.k' + p), (pl.kita || []).map(function (t) { return tileHTML(t); }).join(''));
+    var plate = $('.plate' + p);
+    plate.querySelector('.pl-name').textContent = pl.name || NAMES[p];
+    var pw = plate.querySelector('.pl-wind');
+    pw.textContent = WIND_JA[pl.seatWind] || '';
+    pw.classList.toggle('dealer', !!pl.isDealer);
+    plate.querySelector('.pl-score').textContent = fmt(pl.score);
+    plate.querySelector('.pl-tag').hidden = !pl.riichi;
+    plate.classList.toggle('active', v.phase !== 'roundEnd' && v.phase !== 'gameEnd' && v.turn === p);
+    plate.classList.toggle('thinking', !!S.thinking[p]);
+  }
+
+  function setThinking(p, on) {
+    S.thinking[p] = on;
+    var pl = $('.plate' + p);
+    if (pl) pl.classList.toggle('thinking', on);
+  }
+
+  function miniTiles(kinds) { return kinds.map(function (k) { return tileHTML(kindTile(k)); }).join(''); }
+
+  function renderHint(v) {
+    var el = $('.hint');
+    if (!S.settings.hint) { el.innerHTML = ''; return; }
+    var me = P(v, 0);
+    var fur = me.furiten ? '<span class="fur">フリテン</span>' : '';
+    var E = eng();
+    if (!E || typeof E.toCounts !== 'function' || typeof E.shanten !== 'function') {
+      el.innerHTML = (v._hint || '') + fur;
+      return;
+    }
+    try {
+      var tiles = (me.hand || []).filter(function (t) { return t && t.kind != null; });
+      if (me.drawnTile && me.drawnTile.kind != null) tiles.push(me.drawnTile);
+      var mc = (me.melds || []).length;
+      var kinds = tiles.map(function (t) { return t.kind; });
+      if (!kinds.length) { el.innerHTML = fur; return; }
+      var html = '';
+      if (kinds.length % 3 === 2) {
+        if (S.sel != null) {
+          var rest = [], removed = false, selKind = null;
+          tiles.forEach(function (t) { if (!removed && t.id === S.sel) { removed = true; selKind = t.kind; } else rest.push(t.kind); });
+          var c13 = E.toCounts(rest), s13 = E.shanten(c13, mc);
+          var pre = '打' + kindNameJa(selKind) + ' → ';
+          if (s13 === 0) {
+            var w = E.waits(c13, mc) || [];
+            html = pre + 'テンパイ 待ち: ' + (w.length ? miniTiles(w) + ' ' + w.map(kindShort).join(' ') : 'なし');
+          } else html = pre + s13 + 'シャンテン';
+        } else {
+          var s14 = E.shanten(E.toCounts(kinds), mc);
+          html = s14 < 0 ? '和了形' : s14 === 0 ? 'テンパイ可能（牌を選ぶと待ちを表示）' : s14 + 'シャンテン';
+        }
+      } else {
+        var c = E.toCounts(kinds), s = E.shanten(c, mc);
+        if (s <= 0) {
+          var ws = E.waits(c, mc) || [];
+          html = 'テンパイ 待ち: ' + (ws.length ? miniTiles(ws) + ' ' + ws.map(kindShort).join(' ') : 'なし');
+        } else html = s + 'シャンテン';
+      }
+      el.innerHTML = '<span>' + html + '</span>' + fur;
+    } catch (e) {
+      el.innerHTML = fur;
+    }
+  }
+
+  // =====================================================================
+  // Effects
+  // =====================================================================
+  function flash(text, p, cls, ms) {
+    var fx = $('.fx');
+    var d = document.createElement('div');
+    d.className = 'call-flash' + (cls ? ' ' + cls : '');
+    d.textContent = text;
+    var pos = p == null ? [640, 330] : FX_POS[p];
+    d.style.left = pos[0] + 'px'; d.style.top = pos[1] + 'px';
+    fx.appendChild(d);
+    setTimeout(function () { if (d.parentNode) d.remove(); }, ms || 950);
+    return d;
+  }
+  function burst() {
+    var fx = $('.fx');
+    var d = document.createElement('div');
+    d.className = 'burst';
+    fx.appendChild(d);
+    setTimeout(function () { if (d.parentNode) d.remove(); }, 1300);
+  }
+  function banner(v) {
+    var fx = $('.fx');
+    var d = document.createElement('div');
+    d.className = 'round-banner';
+    var dealer = P(v, v.dealer || 0);
+    d.innerHTML = '<div class="rb-main">' + roundName(v) + '</div><div class="rb-sub">' + (v.honba || 0) + '本場<small>親: ' + esc(dealer.name || NAMES[v.dealer || 0]) + '</small></div>';
+    fx.appendChild(d);
+    setTimeout(function () { if (d.parentNode) d.remove(); }, 1550);
+  }
+
+  // =====================================================================
+  // Event queue / scheduler — one event at a time, never overlapping
+  // =====================================================================
+  function safeView(i) {
+    if (!S.game) return null;
+    try { return S.game.getView(i == null ? 0 : i); } catch (e) { return null; }
+  }
+  function enqueue(ev) {
+    if (!S) return;
+    S.queue.push({ ev: ev, view: safeView(0) });
+    // do not start pumping synchronously inside game code; defer
+    if (!S.pumping) { S.pumping = true; setTimeout(pumpGen(S.gen), 0); }
+  }
+  function pumpGen(g) { return function () { if (S && S.gen === g) next(); }; }
+  function humanPromptQueued() {
+    for (var i = 0; i < S.queue.length; i++) { var e = S.queue[i].ev; if (e.type === 'prompt' && e.player === 0) return true; }
+    return false;
+  }
+  function next() {
+    while (S.queue.length) {
+      var item = S.queue.shift();
+      var d = 0;
+      try { d = handleEvent(item) || 0; } catch (e) { if (root.console) console.error('[UI] event error', item.ev, e); }
+      if (d > 0) {
+        if (humanPromptQueued()) d = Math.min(d, 120);
+        setTimeout(pumpGen(S.gen), d / S.speed);
+        return;
+      }
+    }
+    S.pumping = false;
+  }
+  function kick() { if (S && !S.pumping && S.queue.length) { S.pumping = true; setTimeout(pumpGen(S.gen), 0); } }
+
+  function handleEvent(item) {
+    var ev = item.ev, v = item.view || safeView(0);
+    switch (ev.type) {
+      case 'roundStart':
+        closeOverlay();
+        S.finalResults = null; S.result = null; S.continuePending = false;
+        Array.prototype.forEach.call(S.stage.querySelectorAll('.sb-delta'), function (d) { d.remove(); });
+        render(v, {});
+        banner(v);
+        Snd.play('start');
+        return 1500;
+      case 'draw': {
+        var pl = v && P(v, ev.player);
+        var dealing = pl && !pl.drawnTile;
+        render(v, { type: 'draw', player: ev.player });
+        if (ev.player === 0) Snd.play('soft');
+        if (dealing) return 20;
+        return ev.player === 0 ? 220 : 160;
+      }
+      case 'discard':
+        render(v, { type: 'discard', player: ev.player });
+        Snd.play('clack');
+        return 300;
+      case 'riichi':
+        render(v, {});
+        flash('リーチ', ev.player, 'hold', 900);
+        Snd.play('chime'); Snd.say('リーチ');
+        return 800;
+      case 'call': {
+        var t = ev.meld && ev.meld.type === 'minkan' ? 'カン' : 'ポン';
+        render(v, { type: 'call', player: ev.player });
+        flash(t, ev.player);
+        Snd.play('thud'); Snd.say(t);
+        return 750;
+      }
+      case 'kan':
+        render(v, { type: 'kan', player: ev.player });
+        flash('カン', ev.player);
+        Snd.play('thud'); Snd.say('カン');
+        return 750;
+      case 'kita':
+        render(v, { type: 'kita', player: ev.player });
+        flash('北', ev.player);
+        Snd.play('thud'); Snd.say('キタ');
+        return 600;
+      case 'newDora':
+        render(v, {});
+        var cd = $('.cp-dora'); cd.classList.remove('flash'); void cd.offsetWidth; cd.classList.add('flash');
+        Snd.play('dora');
+        return 450;
+      case 'prompt':
+        if (ev.player === 0) humanPrompt(ev.prompt, v);
+        else aiPrompt(ev.player, ev.prompt);
+        return 0;
+      case 'win':
+        return onWin(ev, v);
+      case 'draw_end':
+        return onDrawEnd(ev, v);
+      case 'roundEnd':
+        if (v) { render(v, {}); }
+        return 150;
+      case 'riichiStick':
+        if (v) render(v, {});
+        return 0;
+      case 'gameEnd':
+        onGameEnd(ev);
+        return 0;
+      default:
+        if (v) render(v, {});
+        return 0;
+    }
+  }
+
+  // =====================================================================
+  // Game lifecycle
+  // =====================================================================
+  function startGame() {
+    Snd.ensure();
+    var G = S.deps.Game;
+    if (!G) { demo('table'); toast('ゲームエンジンが見つからないため、デモ表示です'); return; }
+    S.gen++;
+    clearTimers();
+    closeOverlay();
+    S.queue = []; S.pumping = false; S.prompt = null; S.sel = null; S.riichiMode = false;
+    S.finalResults = null; S.continuePending = false; S.wantNext = false; S.demo = false;
+    S.thinking = [false, false, false];
+    hideActions();
+    hideTitle();
+    $('.fx').innerHTML = '';
+    try {
+      S.game = new G({ names: NAMES.slice(), rng: Math.random, startScore: 35000, rounds: 2, onEvent: enqueue });
+      S.game.start();
+    } catch (e) {
+      if (root.console) console.error('[UI] failed to start game', e);
+      toast('対局を開始できませんでした');
+      showTitle();
+    }
+    kick();
+  }
+
+  function fallbackChoice(pr) {
+    if (!pr) return { action: 'pass' };
+    if (pr.kind === 'turn') {
+      var ids = pr.discardable || [];
+      var id = pr.drawnTile && ids.indexOf(pr.drawnTile.id) >= 0 ? pr.drawnTile.id : ids[ids.length - 1];
+      return { action: 'discard', tileId: id };
+    }
+    if (pr.kind === 'continue') return { action: 'next' };
+    return { action: 'pass' };
+  }
+
+  function aiPrompt(p, prompt) {
+    var g = S.gen;
+    var hurry = !!S.prompt || humanPromptQueued();
+    var delay = hurry ? 40 : (prompt.kind === 'turn' ? rand(350, 700) : rand(250, 450));
+    if (prompt.kind === 'turn') setThinking(p, true);
+    setTimeout(function () {
+      if (!S || S.gen !== g || !S.game) return;
+      setThinking(p, false);
+      if (!(function () { try { return S.game.getView(p).pending; } catch (e) { return true; } })()) return; // already answered
+      var v = null, pr = prompt, choice;
+      try { v = S.game.getView(p); if (v && v.pending) pr = v.pending; } catch (e) { /* ignore */ }
+      try { choice = S.deps.AI ? S.deps.AI.decide(v, pr) : fallbackChoice(pr); } catch (e) { if (root.console) console.error('[UI] AI.decide failed', e); choice = fallbackChoice(pr); }
+      try { S.game.respond(p, choice); } catch (e) {
+        if (root.console) console.error('[UI] respond failed for AI', p, choice, e);
+        try { S.game.respond(p, fallbackChoice(pr)); } catch (e2) { if (root.console) console.error('[UI] fallback respond failed', e2); }
+      }
+      kick();
+    }, delay / S.speed);
+  }
+
+  // =====================================================================
+  // Human prompts
+  // =====================================================================
+  function humanPrompt(prompt, v) {
+    if (!prompt) return;
+    if (prompt.kind === 'continue') {
+      S.continuePending = true;
+      if (S.wantNext) { S.wantNext = false; respondNext(); return; }
+      if (S.panel || S.result) { if (S.panel) enableNext(); return; }
+      if (S.finalResults) { showFinal(); return; }
+      // nothing on screen to acknowledge: move on shortly
+      var g = S.gen;
+      S.nextT = setTimeout(function () { if (S && S.gen === g && S.continuePending && !S.panel) respondNext(); }, 900);
+      return;
+    }
+    S.prompt = prompt; S.promptView = v; S.sel = null; S.riichiMode = false; S.chooser = null;
+    if (v) render(v, {});
+    var st = S.settings;
+    var g2 = S.gen;
+    // automatic handling
+    if (prompt.kind === 'call') {
+      if (!prompt.canRon && !prompt.canPon && !prompt.canKan) { humanRespond({ action: 'pass' }); return; }
+      if (prompt.canRon && st.autoWin) { showActions(); S.autoT = setTimeout(function () { if (S && S.gen === g2 && S.prompt === prompt) humanRespond({ action: 'ron' }); }, 450); return; }
+      if (!prompt.canRon && st.noCalls) { humanRespond({ action: 'pass' }); return; }
+    } else if (prompt.kind === 'turn') {
+      if (prompt.canTsumo && st.autoWin) { showActions(); S.autoT = setTimeout(function () { if (S && S.gen === g2 && S.prompt === prompt) humanRespond({ action: 'tsumo' }); }, 450); return; }
+      var me = v ? P(v, 0) : {};
+      var only = (prompt.discardable || []).length === 1;
+      if (me.riichi && only && !prompt.canTsumo && !prompt.canKita && !(prompt.kans || []).length) {
+        showActions('none');
+        S.autoT = setTimeout(function () { if (S && S.gen === g2 && S.prompt === prompt) humanRespond({ action: 'discard', tileId: prompt.discardable[0] }); }, 550);
+        return;
+      }
+      // pre-select the drawn tile for quick Enter / double-tap tsumogiri
+    }
+    showActions();
+  }
+
+  // timerMode: undefined = (re)start countdown, 'keep' = leave it running, 'none' = no countdown
+  function showActions(timerMode) {
+    var pr = S.prompt;
+    var bar = $('.action-bar'), btns = $('.btns');
+    var h = '';
+    if (pr.kind === 'turn') {
+      if (pr.canTsumo) h += '<button type="button" class="act win" data-act="tsumo">ツモ</button>';
+      if (pr.canRiichi) h += '<button type="button" class="act riichi' + (S.riichiMode ? ' on' : '') + '" data-act="riichi">' + (S.riichiMode ? '取消' : 'リーチ') + '</button>';
+      if ((pr.kans || []).length) h += '<button type="button" class="act call" data-act="ankan">カン</button>';
+      if (pr.canKita) h += '<button type="button" class="act kita" data-act="kita">北</button>';
+      if (pr.canKyuushu) h += '<button type="button" class="act pass" data-act="kyuushu">九種九牌</button>';
+      if (!h) h = '<span class="act-note">' + (S.riichiMode ? 'リーチ宣言牌を選択' : '打牌する牌を選んでください') + '</span>';
+      else if (S.riichiMode) h = '<span class="act-note">宣言牌を選択</span>' + h;
+    } else if (pr.kind === 'call') {
+      var from = S.view ? (P(S.view, pr.from).name || NAMES[pr.from]) : '';
+      if (pr.tile) h += '<span class="act-note call-note">' + tileHTML(pr.tile) + '<span>' + esc(from) + (pr.isChankan ? 'の加槓' : 'の打牌') + '</span></span>';
+      if (pr.canRon) h += '<button type="button" class="act win" data-act="ron">ロン</button>';
+      if (pr.canPon) h += '<button type="button" class="act call" data-act="pon">ポン</button>';
+      if (pr.canKan) h += '<button type="button" class="act call" data-act="minkan">カン</button>';
+      h += '<button type="button" class="act pass" data-act="pass">パス</button>';
+    }
+    btns.innerHTML = h;
+    bar.hidden = false;
+    $('.chooser').hidden = true;
+    if (timerMode === 'none') stopTimer(); else if (timerMode !== 'keep') startPromptTimer();
+    var first = btns.querySelector('button');
+    if (first && pr.kind === 'call') try { first.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+  }
+
+  function hideActions() {
+    $('.action-bar').hidden = true;
+    $('.btns').innerHTML = '';
+    $('.chooser').hidden = true;
+    stopTimer();
+  }
+
+  function startPromptTimer() {
+    stopTimer();
+    if (!S.settings.timer || !S.prompt) return;
+    var secs = S.prompt.kind === 'call' ? Math.max(3, Math.round(S.settings.seconds * 0.6)) : S.settings.seconds;
+    var tm = $('.timer'), fill = $('.t-fill'), num = $('.t-num');
+    tm.hidden = false; tm.classList.remove('low');
+    fill.style.transition = 'none'; fill.style.transform = 'scaleX(1)';
+    fill.style.setProperty('--tdur', secs + 's');
+    void fill.offsetWidth;
+    fill.style.transition = 'transform ' + secs + 's linear';
+    fill.style.transform = 'scaleX(0)';
+    var end = Date.now() + secs * 1000, lastSec = secs;
+    num.textContent = secs;
+    var g = S.gen, pr = S.prompt;
+    S.timerTick = setInterval(function () {
+      if (!S || S.gen !== g) return;
+      var left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+      if (left !== lastSec) { lastSec = left; num.textContent = left; if (left <= 3 && left > 0) Snd.play('tick'); }
+      tm.classList.toggle('low', left <= 3);
+    }, 200);
+    S.timer = setTimeout(function () { if (S && S.gen === g && S.prompt === pr) onTimeout(); }, secs * 1000);
+  }
+  function stopTimer() {
+    if (!S) return;
+    if (S.timer) { clearTimeout(S.timer); S.timer = null; }
+    if (S.timerTick) { clearInterval(S.timerTick); S.timerTick = null; }
+    var tm = S.stage && $('.timer'); if (tm) tm.hidden = true;
+  }
+
+  function onTimeout() {
+    var pr = S.prompt;
+    if (!pr) return;
+    if (S.demo) { startPromptTimer(); return; }
+    if (pr.kind === 'turn') {
+      if (S.settings.autoWin && pr.canTsumo) return humanRespond({ action: 'tsumo' });
+      humanRespond(fallbackChoice(pr));
+    } else if (pr.kind === 'call') {
+      if (S.settings.autoWin && pr.canRon) return humanRespond({ action: 'ron' });
+      humanRespond({ action: 'pass' });
+    }
+  }
+
+  function humanRespond(choice) {
+    var pr = S.prompt;
+    if (!pr) return;
+    if (S.demo) { demoRespond(choice); return; }
+    S.prompt = null; S.sel = null; S.riichiMode = false; S.chooser = null;
+    if (S.autoT) { clearTimeout(S.autoT); S.autoT = null; }
+    hideActions();
+    try {
+      S.game.respond(0, choice);
+    } catch (e) {
+      if (root.console) console.error('[UI] respond failed', choice, e);
+      toast('その操作はできません');
+      S.prompt = pr;
+      if (S.promptView) render(S.promptView, {});
+      showActions();
+      return;
+    }
+    if (S.view) renderHuman(S.view, {}), renderHint(S.view);
+    kick();
+  }
+
+  function respondNext() {
+    S.continuePending = false;
+    if (S.demo || !S.game) return;
+    try { S.game.respond(0, { action: 'next' }); } catch (e) { if (root.console) console.error('[UI] continue failed', e); }
+    kick();
+  }
+
+  // tile click / selection
+  function onTileClick(id) {
+    var pr = S.prompt;
+    if (!pr || pr.kind !== 'turn') return;
+    var en = enabledSet();
+    if (!en || !en[id]) return;
+    if (S.sel === id) {
+      var ch = { action: 'discard', tileId: id };
+      if (S.riichiMode) ch.riichi = true;
+      humanRespond(ch);
+      return;
+    }
+    S.sel = id;
+    Snd.play('select');
+    renderHuman(S.view, {});
+    renderHint(S.view);
+  }
+
+  function moveSel(dir) {
+    var pr = S.prompt;
+    if (!pr || pr.kind !== 'turn') return;
+    var ids = Array.prototype.map.call(S.stage.querySelectorAll('.hand-row .ht:not([disabled])'), function (b) { return +b.getAttribute('data-id'); });
+    if (!ids.length) return;
+    var i = ids.indexOf(S.sel);
+    i = i < 0 ? (dir > 0 ? 0 : ids.length - 1) : (i + dir + ids.length) % ids.length;
+    S.sel = ids[i];
+    renderHuman(S.view, {}); renderHint(S.view);
+    var b = S.stage.querySelector('.hand-row .ht[data-id="' + S.sel + '"]');
+    if (b) try { b.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+  }
+
+  function showChooser(kind) {
+    var pr = S.prompt, ch = $('.chooser'), h = '';
+    var find = function (id) {
+      var me = S.view ? P(S.view, 0) : {};
+      var all = (me.hand || []).concat(me.drawnTile ? [me.drawnTile] : []);
+      for (var i = 0; i < all.length; i++) if (all[i] && all[i].id === id) return all[i];
+      return mkTile(id);
+    };
+    if (kind === 'pon') {
+      (pr.ponTileIds || []).forEach(function (pair, i) {
+        h += '<button type="button" data-act="pon-pick" data-i="' + i + '" aria-label="' + pair.map(function (id) { return tileLabel(find(id)); }).join('と') + 'でポン">' + pair.map(function (id) { return tileHTML(find(id)); }).join('') + '</button>';
+      });
+    } else {
+      (pr.kans || []).forEach(function (k, i) {
+        var t = k.tileIds && k.tileIds.length ? find(k.tileIds[0]) : kindTile(k.kind);
+        h += '<button type="button" data-act="kan-pick" data-i="' + i + '" aria-label="' + tileLabel(t) + 'で' + (k.type === 'kakan' ? '加槓' : '暗槓') + '">' + tileHTML(t) + tileHTML(t) + '</button>';
+      });
+    }
+    ch.innerHTML = h;
+    ch.hidden = false;
+    var f = ch.querySelector('button'); if (f) try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+  }
+
+  function onAction(act, btn) {
+    var pr = S.prompt;
+    switch (act) {
+      case 'start': startGame(); return;
+      case 'settings': openSettings(!$('.drawer').classList.contains('open')); return;
+      case 'close-settings': openSettings(false); return;
+      case 'next': onNextClick(); return;
+      case 'again': startGame(); return;
+      case 'title': S.gen++; clearTimers(); S.game = null; S.prompt = null; hideActions(); showTitle(); return;
+    }
+    if (!pr) return;
+    switch (act) {
+      case 'tsumo': humanRespond({ action: 'tsumo' }); break;
+      case 'ron': humanRespond({ action: 'ron' }); break;
+      case 'pass': humanRespond({ action: 'pass' }); break;
+      case 'kita': humanRespond({ action: 'kita' }); break;
+      case 'kyuushu': humanRespond({ action: 'kyuushu' }); break;
+      case 'minkan': humanRespond({ action: 'kan' }); break;
+      case 'riichi':
+        S.riichiMode = !S.riichiMode;
+        if (S.riichiMode) {
+          var rd = pr.riichiDiscards || [];
+          S.sel = S.sel != null && rd.indexOf(S.sel) >= 0 ? S.sel : (pr.drawnTile && rd.indexOf(pr.drawnTile.id) >= 0 ? pr.drawnTile.id : null);
+        }
+        renderHuman(S.view, {}); renderHint(S.view);
+        showActions('keep');
+        break;
+      case 'pon':
+        if ((pr.ponTileIds || []).length > 1) showChooser('pon');
+        else humanRespond({ action: 'pon', tileIds: (pr.ponTileIds || [])[0] });
+        break;
+      case 'ankan': {
+        var ks = pr.kans || [];
+        if (ks.length > 1) showChooser('kan');
+        else if (ks.length) humanRespond({ action: 'kan', kind: ks[0].kind, type: ks[0].type });
+        break;
+      }
+      case 'pon-pick': humanRespond({ action: 'pon', tileIds: pr.ponTileIds[+btn.getAttribute('data-i')] }); break;
+      case 'kan-pick': { var k = pr.kans[+btn.getAttribute('data-i')]; humanRespond({ action: 'kan', kind: k.kind, type: k.type }); break; }
+    }
+  }
+
+  function onStageClick(e) {
+    var t = e.target;
+    var tileBtn = t.closest && t.closest('.hand-row .ht');
+    if (tileBtn) { if (!tileBtn.disabled) onTileClick(+tileBtn.getAttribute('data-id')); return; }
+    var a = t.closest && t.closest('[data-act]');
+    if (a && !a.disabled) { onAction(a.getAttribute('data-act'), a); return; }
+    // click outside the drawer closes it
+    var d = $('.drawer');
+    if (d.classList.contains('open') && !(t.closest && t.closest('.drawer'))) openSettings(false);
+  }
+
+  function onKey(e) {
+    if (!S) return;
+    if (e.key === 'Escape' && $('.drawer').classList.contains('open')) { openSettings(false); e.preventDefault(); return; }
+    var pr = S.prompt;
+    var tag = e.target && e.target.tagName;
+    if (!pr) {
+      if (e.key === 'Enter' && S.panel && tag !== 'BUTTON') { onNextClick(); e.preventDefault(); }
+      return;
+    }
+    if (pr.kind === 'turn') {
+      if (e.key === 'ArrowLeft') { moveSel(-1); e.preventDefault(); }
+      else if (e.key === 'ArrowRight') { moveSel(1); e.preventDefault(); }
+      else if (e.key === 'Enter') {
+        if (tag === 'BUTTON' && !(e.target.classList.contains('ht'))) return;
+        if (S.sel != null) { onTileClick(S.sel); e.preventDefault(); }
+        else if (e.target.classList && e.target.classList.contains('ht')) { onTileClick(+e.target.getAttribute('data-id')); e.preventDefault(); }
+      } else if (e.key === 'Escape' && S.riichiMode) { onAction('riichi'); e.preventDefault(); }
+    } else if (pr.kind === 'call') {
+      if (e.key === 'Escape' || (e.key === ' ' && tag !== 'BUTTON')) { humanRespond({ action: 'pass' }); e.preventDefault(); }
+    }
+  }
+
+  // =====================================================================
+  // Result panels
+  // =====================================================================
+  function openOverlay(html) {
+    var ov = $('.overlay');
+    ov.innerHTML = html;
+    ov.hidden = false;
+    S.panel = ov.firstElementChild;
+    var b = ov.querySelector('.big-btn:not([disabled])');
+    if (b) try { b.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+  }
+  function closeOverlay() {
+    if (!S) return;
+    var ov = $('.overlay');
+    ov.hidden = true; ov.innerHTML = '';
+    S.panel = null;
+    if (S.nextT) { clearTimeout(S.nextT); S.nextT = null; }
+  }
+  function enableNext() {
+    var b = S.panel && S.panel.querySelector('[data-act="next"]');
+    if (!b) return;
+    b.disabled = false;
+    try { b.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    scheduleAutoNext();
+  }
+  function scheduleAutoNext() {
+    if (!S.settings.timer || S.demo) return;
+    if (S.nextT) clearTimeout(S.nextT);
+    var g = S.gen;
+    var note = S.panel && S.panel.querySelector('.auto');
+    if (note) note.textContent = '一定時間で自動的に進みます';
+    S.nextT = setTimeout(function () { if (S && S.gen === g && S.panel) onNextClick(); }, 15000);
+  }
+
+  function onNextClick() {
+    if (!S.panel || !S.panel.querySelector('[data-act="next"]')) return;
+    var res = S.result;
+    if (res && res.type === 'win' && res.idx < res.ev.winners.length - 1) {
+      res.idx++;
+      openOverlay(winPanelHTML(res.ev, res.idx, res.names));
+      if (S.continuePending || S.finalResults || S.demo) enableNext();
+      Snd.play('fanfare');
+      return;
+    }
+    closeOverlay();
+    S.result = null;
+    if (S.demo) { demo('table'); return; }
+    if (S.finalResults && !S.continuePending) { showFinal(); return; }
+    if (S.continuePending) { respondNext(); if (S.finalResults) showFinal(); return; }
+    S.wantNext = true;
+  }
+
+  function namesOf(v) { return [0, 1, 2].map(function (i) { return (P(v, i).name) || NAMES[i]; }); }
+
+  function yakuHanText(y, isYakuman) {
+    if (isYakuman || y.han >= 13 && !/ドラ/.test(y.name)) return y.han >= 26 ? 'ダブル役満' : '役満';
+    return y.han + '翻';
+  }
+
+  function winPanelHTML(ev, idx, names) {
+    var w = ev.winners[idx] || {};
+    var r = w.result || {};
+    var isTsumo = w.from == null;
+    var hand = (w.hand || []).slice();
+    var wt = w.winTile || null;
+    if (wt) { for (var i = hand.length - 1; i >= 0; i--) if (hand[i] && hand[i].id === wt.id) { hand.splice(i, 1); break; } }
+    hand.sort(function (a, b) { return a.kind - b.kind || (a.red ? 0 : 1) - (b.red ? 0 : 1); });
+    var h = '<div class="panel win-panel" role="dialog" aria-label="和了結果">';
+    h += '<div class="wp-head"><span class="wp-type">' + (isTsumo ? 'ツモ' : 'ロン') + '</span><span class="wp-name">' + esc(names[w.player]) + '</span>' +
+      (isTsumo ? '' : '<span class="wp-from">放銃: ' + esc(names[w.from]) + '</span>') +
+      (ev.winners.length > 1 ? '<span class="wp-page">' + (idx + 1) + ' / ' + ev.winners.length + '</span>' : '') + '</div>';
+    h += '<div class="wp-hand" aria-label="和了手">' + hand.map(function (t) { return tileHTML(t); }).join('');
+    if (wt) h += tileHTML(wt, { cls: 'win-tile' });
+    (w.melds || []).forEach(function (m) { h += '<span class="meld">' + meldHTML(m, w.player) + '</span>'; });
+    var kita = (w.kita || (S.view && P(S.view, w.player).kita) || []);
+    if (kita.length) h += '<span class="kita-g" aria-label="抜きドラ">' + kita.map(function (t) { return tileHTML(t); }).join('') + '</span>';
+    h += '</div>';
+    var dora = (w.doraIndicators || ev.doraIndicators || (S.view && S.view.doraIndicators) || []);
+    var ura = w.uraIndicators || [];
+    h += '<div class="wp-dora"><div class="grp"><span>ドラ表示牌</span><span class="tiles">' + dora.map(function (t) { return tileHTML(t); }).join('') + '</span></div>' +
+      (ura.length ? '<div class="grp"><span>裏ドラ表示牌</span><span class="tiles">' + ura.map(function (t) { return tileHTML(t); }).join('') + '</span></div>' : '') + '</div>';
+    var yakuman = r.yakuman > 0;
+    h += '<div class="wp-body"><ul class="wp-yaku" aria-label="役">';
+    (r.yaku || []).forEach(function (y, i) {
+      var isD = /ドラ/.test(y.name);
+      h += '<li class="' + (isD ? 'dora' : '') + '" style="animation-delay:' + (0.15 + i * 0.12).toFixed(2) + 's"><span>' + esc(y.name) + '</span><b>' + (isD ? y.han : yakuHanText(y, yakuman)) + (isD ? '翻' : '') + '</b></li>';
+    });
+    h += '</ul><div class="wp-score">';
+    if (!yakuman) h += '<div class="wp-fuhan">' + (r.fu ? r.fu + '符 ' : '') + (r.han || 0) + '翻</div>';
+    h += '<div class="wp-limit">' + esc(r.limitName || '') + '</div>';
+    var pm = r.payments || {};
+    var isDealer = S.view ? P(S.view, w.player).isDealer : false;
+    if (w.isDealer != null) isDealer = w.isDealer;
+    // hand value without honba (the game reports honba separately in payments.honba when it adds it)
+    var hb = +pm.honba || 0, value, split = '';
+    var tD = (pm.tsumoDealer || 0) - (pm.tsumoDealer ? 150 * hb : 0), tN = (pm.tsumoNonDealer || 0) - (pm.tsumoNonDealer ? 150 * hb : 0);
+    if (!isTsumo) value = (pm.ron || 0) - 300 * hb;
+    else if (pm.tsumoDealer) { value = tD + tN; split = fmt(tN) + ' / ' + fmt(tD) + '（親）'; }
+    else { value = tN * 2; split = fmt(tN) + ' オール'; }
+    if (!value && pm.total) value = pm.total;
+    var extra = [];
+    if (hb) extra.push(hb + '本場 +' + fmt(300 * hb));
+    if (pm.riichiSticks) extra.push('供託 +' + fmt(1000 * pm.riichiSticks));
+    h += '<div class="wp-points">' + fmt(value) + '<small>点</small></div>' + (split ? '<div class="wp-split">' + split + '</div>' : '') +
+      (extra.length ? '<div class="wp-split">' + extra.join('　') + '</div>' : '');
+    h += '<div class="pay">';
+    var dl = ev.scoreDeltas || [0, 0, 0];
+    for (var p = 0; p < 3; p++) {
+      h += '<div class="pay-row"><span>' + esc(names[p]) + '</span><span class="v ' + (dl[p] > 0 ? 'plus' : dl[p] < 0 ? 'minus' : '') + '">' + signed(dl[p]) + '</span></div>';
+    }
+    h += '</div></div></div>';
+    h += '<div class="panel-foot"><span class="auto"></span><button type="button" class="big-btn" data-act="next"' + (S.continuePending || S.demo ? '' : ' disabled') + '>次へ</button></div></div>';
+    return h;
+  }
+
+  function onWin(ev, v) {
+    if (!ev.winners || !ev.winners.length) return 0;
+    if (v) render(v, {});
+    var names = namesOf(v || S.view);
+    var w0 = ev.winners[0];
+    var isTsumo = w0.from == null;
+    flash(isTsumo ? 'ツモ' : 'ロン', w0.player, 'big hold', 1300);
+    burst();
+    Snd.play('clack'); Snd.say(isTsumo ? 'ツモ' : 'ロン');
+    showDeltas(ev.scoreDeltas);
+    // stats
+    S.stats.hands++;
+    if (ev.winners.some(function (w) { return w.player === 0; })) S.stats.wins++;
+    saveJSON('sanma.stats', S.stats);
+    S.result = { type: 'win', ev: ev, idx: 0, names: names };
+    var g = S.gen;
+    setTimeout(function () {
+      if (!S || S.gen !== g || !S.result || S.result.ev !== ev) return;
+      openOverlay(winPanelHTML(ev, 0, names));
+      Snd.play('fanfare');
+      if (S.continuePending || S.finalResults) enableNext();
+    }, 1100);
+    return 1200;
+  }
+
+  function drawPanelHTML(ev, names, v) {
+    var kyu = ev.reason === 'kyuushu';
+    var title = kyu ? '九種九牌' : '流局';
+    var h = '<div class="panel draw-panel" role="dialog" aria-label="' + title + '"><div class="wp-head"><span class="wp-type">' + title + '</span><span class="wp-name">' + (v ? roundName(v) : '') + '</span>' +
+      (kyu && ev.player != null ? '<span class="wp-from">' + esc(names[ev.player]) + 'の宣言による途中流局</span>' : '') + '</div><div class="dp-rows">';
+    var dl = ev.scoreDeltas || [0, 0, 0];
+    for (var p = 0; p < 3; p++) {
+      var tp = ev.tenpai ? !!ev.tenpai[p] : false;
+      var hand = ev.hands && ev.hands[p];
+      var stCls = kyu ? (p === ev.player ? 'tenpai' : 'noten') : (tp ? 'tenpai' : 'noten');
+      var stTxt = kyu ? (p === ev.player ? '九種九牌' : '―') : (tp ? 'テンパイ' : 'ノーテン');
+      h += '<div class="dp-row"><div class="dp-name">' + esc(names[p]) + '</div><div class="dp-state ' + stCls + '">' + stTxt + '</div>' +
+        '<div class="dp-hand">' + (hand && hand.length ? hand.slice().sort(function (a, b) { return a.kind - b.kind; }).map(function (t) { return tileHTML(t); }).join('') +
+          (v ? (P(v, p).melds || []).map(function (m) { return '<span class="meld">' + meldHTML(m, p) + '</span>'; }).join('') : '') : '<span class="none">―</span>') + '</div>' +
+        '<div class="dp-delta ' + (dl[p] > 0 ? 'plus' : dl[p] < 0 ? 'minus' : 'zero') + '">' + signed(dl[p]) + '</div></div>';
+    }
+    h += '</div><div class="panel-foot"><span class="auto"></span><button type="button" class="big-btn" data-act="next"' + (S.continuePending || S.demo ? '' : ' disabled') + '>次へ</button></div></div>';
+    return h;
+  }
+
+  function onDrawEnd(ev, v) {
+    if (v) render(v, {});
+    var names = namesOf(v || S.view);
+    flash(ev.reason === 'kyuushu' ? '九種九牌' : '流局', null, 'draw hold', 1000);
+    Snd.play('draw');
+    showDeltas(ev.scoreDeltas);
+    S.stats.hands++;
+    saveJSON('sanma.stats', S.stats);
+    S.result = { type: 'draw', ev: ev };
+    var g = S.gen;
+    setTimeout(function () {
+      if (!S || S.gen !== g || !S.result || S.result.ev !== ev) return;
+      openOverlay(drawPanelHTML(ev, names, v));
+      if (S.continuePending || S.finalResults) enableNext();
+    }, 1000);
+    return 1100;
+  }
+
+  function onGameEnd(ev) {
+    S.finalResults = ev.results || [];
+    var me = null;
+    S.finalResults.forEach(function (r) { if (r.player === 0) me = r; });
+    S.stats.games++;
+    if (me && me.rank >= 1 && me.rank <= 3) S.stats.ranks[me.rank - 1]++;
+    saveJSON('sanma.stats', S.stats);
+    if (S.panel) enableNext();
+    else if (!S.result) setTimeout(function () { if (S && !S.panel && S.finalResults) showFinal(); }, 600);
+  }
+
+  function showFinal() {
+    var res = (S.finalResults || []).slice().sort(function (a, b) { return a.rank - b.rank; });
+    var names = namesOf(S.view);
+    var h = '<div class="panel final-panel" role="dialog" aria-label="最終結果"><div class="final-title">対局終了</div><div class="fr-rows">';
+    res.forEach(function (r, i) {
+      var pts = typeof r.points === 'number' ? r.points : 0;
+      h += '<div class="fr-row' + (r.player === 0 ? ' me' : '') + '" style="animation-delay:' + (0.2 + i * 0.25) + 's"><div class="fr-rank r' + r.rank + '">' + r.rank + '位</div>' +
+        '<div class="fr-name">' + esc(names[r.player] || NAMES[r.player]) + '</div><div class="fr-score">' + fmt(r.score) + '</div>' +
+        '<div class="fr-pts ' + (pts > 0 ? 'plus' : pts < 0 ? 'minus' : '') + '">' + (pts > 0 ? '+' : pts < 0 ? '−' : '±') + Math.abs(pts).toFixed(1) + '</div></div>';
+    });
+    h += '</div><div class="panel-foot"><button type="button" class="big-btn" data-act="again">もう一度</button><button type="button" class="big-btn ghost" data-act="title">タイトルへ</button></div></div>';
+    openOverlay(h);
+    S.result = null;
+    var mine = res.filter(function (r) { return r.player === 0; })[0];
+    if (mine && mine.rank === 1) { Snd.play('fanfare'); burst(); }
+  }
+
+  // =====================================================================
+  // Demo (hard-coded realistic view, works without Game/AI/Engine)
+  // =====================================================================
+  function T(kind, copy, red) { var id = kind * 4 + (copy || 0); return { id: id, kind: kind, red: red != null ? red : isRedId(id) }; }
+  function K(str) {
+    // "1p2p5P" style helper (capital = red five) -> tiles with unique copies
+    var out = [], used = {}, re = /(\d)([mpsMPS])|([ESWNHGR])/g, m;
+    var hon = { E: 27, S: 28, W: 29, N: 30, H: 31, G: 32, R: 33 };
+    while ((m = re.exec(str))) {
+      var kind, red = false;
+      if (m[3]) kind = hon[m[3]];
+      else { kind = (+m[1] - 1) + { m: 0, p: 9, s: 18 }[m[2].toLowerCase()]; red = m[2] === 'P' || m[2] === 'S'; }
+      var copy = 0;
+      if (!red) { used[kind] = used[kind] == null ? ((kind === 13 || kind === 22) ? 1 : 0) : used[kind] + 1; copy = used[kind]; }
+      out.push(T(kind, copy % 4, red));
+    }
+    return out;
+  }
+  function riv(str, opts) {
+    opts = opts || {};
+    return K(str).map(function (t, i) { return { tile: t, riichi: i === opts.riichi, taken: (opts.taken || []).indexOf(i) >= 0 }; });
+  }
+
+  function demoView() {
+    var p0hand = K('1p1p3p4p5P6s7s8s9m9m');
+    var v = {
+      phase: 'playing', roundWind: 28, roundNumber: 2, honba: 1, riichiSticks: 1, wallRemaining: 23,
+      doraIndicators: [T(20, 2)], dealer: 1, turn: 2, viewer: 0,
+      lastDiscard: { player: 2, tile: T(8, 2) },
+      players: [
+        { name: 'あなた', score: 33000, seatWind: 29, isDealer: false, riichi: false, hand: p0hand, drawnTile: null, handCount: 10,
+          discards: riv('NW1m9p2sH8p4s2p', { taken: [5] }), melds: [{ type: 'pon', tiles: [T(32, 0), T(32, 1), T(32, 2)], calledTile: T(32, 2), from: 2 }],
+          kita: [T(30, 3)], furiten: false },
+        { name: '雀士A', score: 41300, seatWind: 27, isDealer: true, riichi: true, hand: new Array(13).fill(null), drawnTile: null, handCount: 13,
+          discards: riv('SE9s1s1m8s7pR2p3sW', { riichi: 7 }), melds: [], kita: [T(30, 0), T(30, 1)] },
+        { name: '雀士B', score: 29700, seatWind: 28, isDealer: false, riichi: false, hand: new Array(10).fill(null), drawnTile: null, handCount: 10,
+          discards: riv('E1pWN9s2s8s1s5s6p3m9m'.replace('3m', '9p')), melds: [{ type: 'pon', tiles: [T(31, 0), T(31, 1), T(31, 2)], calledTile: T(31, 2), from: 0 }], kita: [] }
+      ],
+      _hint: '<span>テンパイ 待ち: ' + miniTiles([9, 8]) + ' 1p 9m</span>'
+    };
+    v.pending = { kind: 'call', from: 2, tile: T(8, 2), canRon: true, canPon: true, ponTileIds: [[p0hand[8].id, p0hand[9].id]], canKan: false, isChankan: false };
+    return v;
+  }
+
+  function demoWinEvent() {
+    var hand = K('2p3p4p5P6p7p3s4s5s6s7s8s9p9p');
+    return {
+      type: 'win',
+      winners: [{
+        player: 0, from: null, hand: hand, melds: [], winTile: hand[5], uraIndicators: [T(12, 3)], kita: [T(30, 3)],
+        result: {
+          yaku: [{ name: '立直', han: 1 }, { name: '門前清自摸和', han: 1 }, { name: '平和', han: 1 }, { name: '一発', han: 1 },
+            { name: '赤ドラ', han: 1 }, { name: '抜きドラ', han: 1 }, { name: '裏ドラ', han: 1 }],
+          han: 7, fu: 20, yakuman: 0, limitName: '跳満', basePoints: 3000,
+          payments: { total: 13300, ron: 0, tsumoDealer: 6150, tsumoNonDealer: 6150, honba: 1, riichiSticks: 1 }
+        }
+      }],
+      doraIndicators: [T(20, 2)],
+      scoreDeltas: [13300, -6150, -6150]
+    };
+  }
+
+  function demo(mode) {
+    if (!S) mount(hasDOM ? (document.getElementById('app') || document.body) : null, Sanma);
+    mode = mode || 'table';
+    S.gen++;
+    clearTimers();
+    closeOverlay();
+    S.demo = true; S.game = null;
+    openSettings(false);
+    if (mode === 'title') { S.demo = false; showTitle(); return Sanma.UI; }
+    hideTitle();
+    var v = demoView();
+    S.view = v;
+    S.prompt = null;
+    render(v, {});
+    if (mode === 'table' || mode === 'settings') {
+      S.prompt = v.pending; S.promptView = v;
+      showActions();
+      if (mode === 'settings') openSettings(true);
+    } else if (mode === 'turn') {
+      // own-turn variant: 14 tiles with riichi available
+      var me = v.players[0];
+      me.hand = K('1p1p3p4p5P6s7s8s9m9m'); me.drawnTile = T(15, 1);
+      v.turn = 0; v.lastDiscard = null; v.players[2].drawnTile = null;
+      var ids = me.hand.map(function (t) { return t.id; }).concat([me.drawnTile.id]);
+      S.prompt = { kind: 'turn', drawnTile: me.drawnTile, canTsumo: false, canRiichi: false, riichiDiscards: [], canKita: false, kans: [], discardable: ids, canKyuushu: false };
+      S.sel = me.drawnTile.id;
+      render(v, {});
+      showActions();
+    } else if (mode === 'riichi' || mode === 'pon') {
+      var m0 = v.players[0];
+      v.lastDiscard = null;
+      if (mode === 'riichi') {
+        m0.melds = []; m0.hand = K('2p3p4p6p7p8p3s3s3s3s9s9sN'); m0.drawnTile = T(26, 2);
+        v.turn = 0;
+        var nId = m0.hand[12].id;
+        S.prompt = { kind: 'turn', drawnTile: m0.drawnTile, canTsumo: false, canRiichi: true, riichiDiscards: [nId, m0.hand[0].id], canKita: true,
+          kans: [{ type: 'ankan', kind: 20, tileIds: m0.hand.slice(6, 10).map(function (t) { return t.id; }) }, { type: 'kakan', kind: 32, tileIds: [T(32, 3).id] }],
+          discardable: m0.hand.map(function (t) { return t.id; }).concat([m0.drawnTile.id]), canKyuushu: false };
+      } else {
+        m0.hand = K('1p1p3p4p5P5p5p6s7s8s');
+        v.lastDiscard = { player: 2, tile: T(13, 3) };
+        S.prompt = { kind: 'call', from: 2, tile: T(13, 3), canRon: false, canPon: true, ponTileIds: [[52, m0.hand[5].id], [m0.hand[5].id, m0.hand[6].id]], canKan: true, kanTileIds: [52, m0.hand[5].id, m0.hand[6].id], isChankan: false };
+      }
+      S.promptView = v;
+      render(v, {});
+      showActions();
+    } else if (mode === 'win') {
+      var ev = demoWinEvent();
+      S.result = { type: 'win', ev: ev, idx: 0, names: namesOf(v) };
+      openOverlay(winPanelHTML(ev, 0, namesOf(v)));
+    } else if (mode === 'draw') {
+      var dev = { type: 'draw_end', tenpai: [true, true, false], hands: [K('1p1p3p4p5P6s7s8s9m9m'), K('2p3p4p6p7p8p2s3s4sEEE5s'), null], scoreDeltas: [1500, 1500, -3000] };
+      S.result = { type: 'draw', ev: dev };
+      openOverlay(drawPanelHTML(dev, namesOf(v), v));
+    } else if (mode === 'final') {
+      S.finalResults = [{ player: 0, score: 52300, rank: 1, points: 42.3 }, { player: 1, score: 31700, rank: 2, points: -8.3 }, { player: 2, score: 21000, rank: 3, points: -34.0 }];
+      showFinal();
+    } else if (mode === 'banner') {
+      banner(v);
+    }
+    return Sanma.UI;
+  }
+
+  function demoRespond(choice) {
+    if (choice.action === 'ron') { S.prompt = null; hideActions(); flash('ロン', 0, 'big hold', 1100); burst(); Snd.play('fanfare'); setTimeout(function () { if (S && S.demo) demo('win'); }, 1100); return; }
+    if (choice.action === 'discard') { toast('デモ表示です（打牌: ' + tileLabel(mkTile(choice.tileId)) + '）'); return; }
+    toast('デモ表示です（' + ({ pass: 'パス', pon: 'ポン', kan: 'カン', tsumo: 'ツモ', kita: '北' }[choice.action] || choice.action) + '）');
+    startPromptTimer();
+  }
+
+  // =====================================================================
+  // Public API
+  // =====================================================================
+  Sanma.UI = {
+    mount: mount,
+    tileSVG: tileSVG,
+    demo: demo,
+    // exposed for debugging / tests
+    _state: function () { return S; },
+    _setSpeed: function (x) { if (S) S.speed = Math.max(0.1, +x || 1); },
+    _kindNameJa: kindNameJa
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = Sanma.UI;
+})();
+
+</script>
+<script>
+(function () {
+  var app = document.getElementById('app');
+  var Sanma = window.Sanma;
+  if (!Sanma || !Sanma.UI) { app.textContent = '読み込みに失敗しました。'; return; }
+  var demo = null;
+  try { demo = new URLSearchParams(location.search).get('demo'); } catch (e) {}
+  Sanma.UI.mount(app, Sanma);
+  if (demo || !Sanma.Game) Sanma.UI.demo(demo || 'table');
+})();
+</script>
+</body>
+</html>
